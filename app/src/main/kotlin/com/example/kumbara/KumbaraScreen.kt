@@ -5,12 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -18,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -37,21 +35,38 @@ fun KumbaraScreen(
     onSaveGoal: (name: String, amount: Double, daily: Double) -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
-    onConfirmReset: () -> Unit
+    onConfirmReset: () -> Unit,
+    onCloseUpdate: () -> Unit,
+    onDownloadUpdate: (url: String) -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Yeter!",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 24.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    text = state.currentAppVersion,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
                         Text(
-                            text = "Yeter!",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 24.sp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "Harcama Kısıtlama ve Kumbara",
+                            text = "Harcama Kısıtlama ve Canlı Kumbara",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -75,10 +90,10 @@ fun KumbaraScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
+            item { Spacer(modifier = Modifier.height(2.dp)) }
 
             // 1. Motivasyonel Üst Mesaj
             item {
@@ -91,13 +106,13 @@ fun KumbaraScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "💡",
-                            fontSize = 26.sp,
-                            modifier = Modifier.padding(end = 12.dp)
+                            fontSize = 24.sp,
+                            modifier = Modifier.padding(end = 10.dp)
                         )
                         Text(
                             text = state.motivationMessage,
@@ -109,7 +124,7 @@ fun KumbaraScreen(
                 }
             }
 
-            // 2. Canlı Quitzilla Zaman Sayacı
+            // 2. Canlı Quitzilla Zaman Sayacı (Taşmayan, %100 Duyarlı Izgara)
             item {
                 Card(
                     shape = RoundedCornerShape(20.dp),
@@ -121,34 +136,36 @@ fun KumbaraScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "HARCAMADAN GEÇEN SÜRE",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
+                        // 4 Zaman Kutucuğu (weight 1f ile her ekrana %100 sığar, asla taşmaz)
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TimeUnitBox(value = state.elapsedDays, unit = "GÜN")
-                            Text(":", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            TimeUnitBox(value = state.elapsedHours, unit = "SAAT")
-                            Text(":", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            TimeUnitBox(value = state.elapsedMinutes, unit = "DK")
-                            Text(":", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            TimeUnitBox(value = state.elapsedSeconds, unit = "SN")
+                            TimeUnitBox(value = state.elapsedDays, unit = "GÜN", modifier = Modifier.weight(1f))
+                            Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
+                            TimeUnitBox(value = state.elapsedHours, unit = "SAAT", modifier = Modifier.weight(1f))
+                            Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
+                            TimeUnitBox(value = state.elapsedMinutes, unit = "DK", modifier = Modifier.weight(1f))
+                            Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
+                            TimeUnitBox(value = state.elapsedSeconds, unit = "SN", modifier = Modifier.weight(1f))
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
                             text = "KUMBARADA CANLI BİRİKEN",
@@ -158,7 +175,7 @@ fun KumbaraScreen(
                         )
                         Text(
                             text = String.format(Locale.getDefault(), "₺ %.2f", state.totalSaved),
-                            fontSize = 34.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -178,14 +195,14 @@ fun KumbaraScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(18.dp)
+                            .padding(16.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "🎯 HEDEF",
                                     fontSize = 11.sp,
@@ -194,29 +211,30 @@ fun KumbaraScreen(
                                 )
                                 Text(
                                     text = state.targetName,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                             }
                             Text(
                                 text = String.format(Locale.getDefault(), "₺ %.2f", state.targetAmount),
-                                fontSize = 18.sp,
+                                fontSize = 17.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         LinearProgressIndicator(
                             progress = { state.progressFraction },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(12.dp)
-                                .clip(RoundedCornerShape(6.dp)),
+                                .height(10.dp)
+                                .clip(RoundedCornerShape(5.dp)),
                         )
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -235,7 +253,7 @@ fun KumbaraScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(14.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Surface(
                             shape = RoundedCornerShape(12.dp),
@@ -244,17 +262,17 @@ fun KumbaraScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp)
+                                    .padding(10.dp)
                             ) {
                                 Text(
                                     text = "⏳ Kalan Süre: ${state.daysRemaining} Gün",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                                 Text(
-                                    text = "📅 Tahmini Ulaşma Tarihi: ${state.estimatedReachDate}",
-                                    fontSize = 13.sp,
+                                    text = "📅 Tahmini Ulaşma: ${state.estimatedReachDate}",
+                                    fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
                                 )
                             }
@@ -267,53 +285,56 @@ fun KumbaraScreen(
             item {
                 Text(
                     text = "🏆 Ne Almak İstersin? (Dönüm Noktaları)",
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
                     items(state.milestones) { milestone ->
                         val reached = state.elapsedDays >= milestone.dayThreshold
                         Card(
-                            modifier = Modifier.width(200.dp),
-                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.width(170.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (reached) MaterialTheme.colorScheme.tertiaryContainer
                                 else MaterialTheme.colorScheme.surfaceVariant
                             )
                         ) {
                             Column(
-                                modifier = Modifier.padding(14.dp)
+                                modifier = Modifier.padding(12.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(milestone.icon, fontSize = 24.sp)
+                                    Text(milestone.icon, fontSize = 22.sp)
                                     Text(
                                         text = if (reached) "KAZANDIN 🎉" else "${milestone.dayThreshold}. GÜN",
-                                        fontSize = 11.sp,
+                                        fontSize = 10.sp,
                                         fontWeight = FontWeight.Black,
                                         color = if (reached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = milestone.title,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = milestone.suggestedReward,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 14.sp
                                 )
                             }
                         }
@@ -327,31 +348,70 @@ fun KumbaraScreen(
                     onClick = onOpenUrge,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
+                        .height(50.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Icon(
                         Icons.Default.Warning,
                         contentDescription = "Dürtü",
-                        modifier = Modifier.size(22.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "DUR! (Harcama İsteği Geldi)",
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(14.dp)) }
         }
     }
 
-    // DIALOG: Alışveriş Dürtüsü Geldiğinde
+    // DIALOG 1: GÜNCELLEME BİLDİRİMİ ("ARTIK YETER!")
+    if (state.showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = onCloseUpdate,
+            icon = { Icon(Icons.Default.NewReleases, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = "Artık Yeter!",
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "🎉 Yeni Sürüm Bulundu!",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Yeter uygulamasının yeni sürümü (${state.updateVersion}) hazır. Daha stabil ve güncel deneyim için güncelleyebilirsiniz.",
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { onDownloadUpdate(state.updateDownloadUrl) }) {
+                    Text("Hemen Güncelle")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCloseUpdate) {
+                    Text("Daha Sonra")
+                }
+            }
+        )
+    }
+
+    // DIALOG 2: Alışveriş Dürtüsü Geldiğinde
     if (state.showUrgeDialog) {
         AlertDialog(
             onDismissRequest = onCloseUrge,
@@ -384,7 +444,7 @@ fun KumbaraScreen(
         )
     }
 
-    // DIALOG: Hedef Düzenleme
+    // DIALOG 3: Hedef Düzenleme
     if (state.showEditDialog) {
         var tempName by remember { mutableStateOf(state.targetName) }
         var tempAmount by remember { mutableStateOf(state.targetAmount.toString()) }
@@ -439,7 +499,7 @@ fun KumbaraScreen(
         )
     }
 
-    // DIALOG: Sıfırlama Onayı
+    // DIALOG 4: Sıfırlama Onayı
     if (state.showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = onCloseReset,
@@ -466,17 +526,17 @@ fun KumbaraScreen(
 }
 
 @Composable
-fun TimeUnitBox(value: Long, unit: String) {
+fun TimeUnitBox(value: Long, unit: String, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = String.format(Locale.getDefault(), "%02d", value),
-            fontSize = 20.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.onSurface
         )

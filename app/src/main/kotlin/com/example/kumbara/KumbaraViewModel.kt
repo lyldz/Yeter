@@ -4,12 +4,18 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,9 +29,10 @@ data class Milestone(
 )
 
 data class KumbaraUiState(
+    val currentAppVersion: String = "v1.0.1",
     val targetName: String = "Asıl İhtiyacım / Hedefim",
     val targetAmount: Double = 540.0,
-    val dailySaving: Double = 12.0, // Günlük harcanmayan miktar (TL)
+    val dailySaving: Double = 30.0, // Günlük harcanmayan miktar (1 Simit & Çay = 30 TL)
     val startTimestamp: Long = System.currentTimeMillis(),
 
     // Canlı Süre
@@ -46,6 +53,12 @@ data class KumbaraUiState(
     val showEditDialog: Boolean = false,
     val showResetConfirmDialog: Boolean = false,
 
+    // Güncelleme Kontrolü
+    val hasUpdate: Boolean = false,
+    val updateVersion: String = "",
+    val updateDownloadUrl: String = "",
+    val showUpdateDialog: Boolean = false,
+
     // Dönüm Noktaları
     val milestones: List<Milestone> = listOf(
         Milestone(3, "3 Günlük Kararlılık", "Sıcak bir filtre kahve ve teşekkür", "☕"),
@@ -65,14 +78,21 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         startLiveTimer()
+        checkForUpdates()
     }
 
     private fun loadInitialState(): KumbaraUiState {
         val targetName = prefs.getString("target_name", "Sony Kulaklık / Hedef") ?: "Sony Kulaklık / Hedef"
         val targetAmount = prefs.getFloat("target_amount", 540.0f).toDouble()
-        val dailySaving = prefs.getFloat("daily_saving", 15.0f).toDouble()
-        val defaultStart = System.currentTimeMillis() - (2 * 86400 * 1000L) // Örnek olarak 2 gün önce başlasın
-        val startTimestamp = prefs.getLong("start_timestamp", defaultStart)
+        // Günlük tasarruf: 1 simit ve çay parası (30 TL)
+        val dailySaving = prefs.getFloat("daily_saving", 30.0f).toDouble()
+        
+        // İlk açılışta süreyi şu andan başlat (0 gün 0 saat)
+        val now = System.currentTimeMillis()
+        val startTimestamp = prefs.getLong("start_timestamp", now)
+        if (!prefs.contains("start_timestamp")) {
+            prefs.edit().putLong("start_timestamp", now).apply()
+        }
 
         return KumbaraUiState(
             targetName = targetName,
@@ -113,7 +133,6 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                 (savedMoney / state.targetAmount).toFloat().coerceIn(0f, 1f)
             } else 0f
 
-            // Tahmini ulaşma tarihi
             val targetReachTime = now + (daysLeft * 86400 * 1000L)
             val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("tr", "TR"))
             val reachDateStr = dateFormat.format(Date(targetReachTime))
@@ -138,6 +157,61 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                 motivationMessage = motivation
             )
         }
+    }
+
+    private fun checkForUpdates() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val url = URL("https://api.github.com/repos/lyldz/Yeter/releases/latest")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                conn.setRequestProperty("User-Agent", "YeterApp")
+                conn.connectTimeout = 6000
+                conn.readTimeout = 6000
+
+                if (conn.responseCode == 200) {
+                    val reader = BufferedReader(InputStreamReader(conn.inputStream))
+                    val body = reader.readText()
+                    reader.close()
+
+                    val json = JSONObject(body)
+                    val latestTag = json.optString("tag_name", "")
+                    val htmlUrl = json.optString("html_url", "https://github.com/lyldz/Yeter/releases")
+                    
+                    var apkDownloadUrl = htmlUrl
+                    val assets = json.optJSONArray("assets")
+                    if (assets != null) {
+                        for (i in 0 until assets.length()) {
+                            val asset = assets.getJSONObject(i)
+                            if (asset.optString("name").endsWith(".apk")) {
+                                apkDownloadUrl = asset.optString("browser_download_url", htmlUrl)
+                                break
+                            }
+                        }
+                    }
+
+                    if (isNewVersionAvailable(latestTag, _uiState.value.currentAppVersion)) {
+                        _uiState.update {
+                            it.copy(
+                                hasUpdate = true,
+                                updateVersion = latestTag,
+                                updateDownloadUrl = apkDownloadUrl,
+                                showUpdateDialog = true
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // Sessizce geç (çevrimdışıysa çökmesin)
+            }
+        }
+    }
+
+    private fun isNewVersionAvailable(remoteTag: String, currentTag: String): Boolean {
+        val cleanRemote = remoteTag.removePrefix("v").trim()
+        val cleanCurrent = currentTag.removePrefix("v").trim()
+        return cleanRemote.isNotEmpty() && cleanRemote != cleanCurrent
     }
 
     fun updateGoal(name: String, amount: Double, daily: Double) {
@@ -180,5 +254,9 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
 
     fun openResetDialog(open: Boolean) {
         _uiState.update { it.copy(showResetConfirmDialog = open) }
+    }
+
+    fun closeUpdateDialog() {
+        _uiState.update { it.copy(showUpdateDialog = false) }
     }
 }

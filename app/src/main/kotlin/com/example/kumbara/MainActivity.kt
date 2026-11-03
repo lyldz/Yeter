@@ -1,5 +1,7 @@
 package com.example.kumbara
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +10,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 
@@ -34,7 +35,16 @@ class MainActivity : ComponentActivity() {
                     onSaveGoal = { name, amount, daily -> viewModel.updateGoal(name, amount, daily) },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
-                    onConfirmReset = { viewModel.resetStreak() }
+                    onConfirmReset = { viewModel.resetStreak() },
+                    onCloseUpdate = { viewModel.closeUpdateDialog() },
+                    onDownloadUpdate = { url ->
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            // Intent açılamazsa fallback
+                        }
+                    }
                 )
             }
         }

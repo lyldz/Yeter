@@ -44,14 +44,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "Yeter! v1.0.0 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.0.1
+          name: "Yeter! v1.0.1 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! Uygulaması Hazır
+            ### 📱 Yeter! v1.0.1 Sürümü Yayında
 
-            Gereksiz harcamaları durdurup asıl hedeflere odaklanmayı sağlayan **Yeter!** uygulamasının Android kurulum paketi (APK).
+            #### 🚀 Yenilikler:
+            - **Günlük Tasarruf:** Varsayılan değer 1 simit ve çay parası olan **30 TL** olarak ayarlandı.
+            - **Ekran Düzeni Düzeltmesi:** Zaman sayacı kutucukları (GÜN : SAAT : DK : SN) tüm telefon ekran genişliklerine göre duyarlı hale getirildi, saniye kutusunun taşması engellendi.
+            - **Canlı Süre:** İlk açılışta 0 gün 0 saat olarak şu andan itibaren başlama kurgusu sağlandı.
+            - **Otomatik Güncelleme:** Uygulama açılışında arka planda yeni sürüm kontrolü eklendi; yeni sürüm çıktığında "Artık Yeter!" uyarısıyla indirme bağlantısı sunulur.
 
-            #### 🚀 İndirme:
+            #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip doğrudan yükleyebilirsiniz.
           files: Yeter.apk
         env:
