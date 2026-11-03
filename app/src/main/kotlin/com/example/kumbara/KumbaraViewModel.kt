@@ -29,7 +29,7 @@ data class Milestone(
 )
 
 data class KumbaraUiState(
-    val currentAppVersion: String = "v1.0.1",
+    val currentAppVersion: String = "v1.0.2",
     val targetName: String = "Asıl İhtiyacım / Hedefim",
     val targetAmount: Double = 540.0,
     val dailySaving: Double = 30.0, // Günlük harcanmayan miktar (1 Simit & Çay = 30 TL)
