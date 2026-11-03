@@ -3,25 +3,40 @@ package com.example.kumbara
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: KumbaraViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            KumbaraApp()
-        }
-    }
-}
+            val darkTheme = isSystemInDarkTheme()
+            val colorScheme = if (darkTheme) darkColorScheme() else lightColorScheme()
 
-@Composable
-fun KumbaraApp(viewModel: KumbaraViewModel = viewModel()) {
-    val state by viewModel.uiState.collectAsState()
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Kumbara Tracker") }) }
-    ) { paddingValues ->
-        KumbaraScreen(state = state, onNoSpend = { viewModel.incrementStreak() })
+            MaterialTheme(colorScheme = colorScheme) {
+                val state by viewModel.uiState.collectAsState()
+
+                KumbaraScreen(
+                    state = state,
+                    onOpenUrge = { viewModel.openUrgeDialog(true) },
+                    onCloseUrge = { viewModel.openUrgeDialog(false) },
+                    onOpenEdit = { viewModel.openEditDialog(true) },
+                    onCloseEdit = { viewModel.openEditDialog(false) },
+                    onSaveGoal = { name, amount, daily -> viewModel.updateGoal(name, amount, daily) },
+                    onOpenReset = { viewModel.openResetDialog(true) },
+                    onCloseReset = { viewModel.openResetDialog(false) },
+                    onConfirmReset = { viewModel.resetStreak() }
+                )
+            }
+        }
     }
 }

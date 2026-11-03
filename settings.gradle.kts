@@ -1,10 +1,18 @@
 pluginManagement {
     repositories {
+        google()
+        mavenCentral()
         gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
         google()
         mavenCentral()
     }
 }
 
-rootProject.name = "kumbara_tracker"
+rootProject.name = "Yeter"
 include(":app")
