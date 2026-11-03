@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -19,6 +20,7 @@ import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import kotlin.math.max
 
 data class Milestone(
@@ -28,8 +30,31 @@ data class Milestone(
     val icon: String = "🎯"
 )
 
+data class WishlistItem(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val price: Double,
+    val addedTimestamp: Long = System.currentTimeMillis()
+)
+
+data class WishlistItemUi(
+    val id: String,
+    val name: String,
+    val price: Double,
+    val remainingMoney: Double,
+    val daysRemaining: Long,
+    val hoursRemaining: Long,
+    val minutesRemaining: Long,
+    val secondsRemaining: Long,
+    val progressFraction: Float,
+    val estimatedReachDate: String,
+    val isCompleted: Boolean
+)
+
 data class KumbaraUiState(
-    val currentAppVersion: String = "v1.0.2",
+    val currentAppVersion: String = "v1.0.3",
+    val selectedTab: Int = 0, // 0: Kumbara, 1: Vitrin
+
     val targetName: String = "Asıl İhtiyacım / Hedefim",
     val targetAmount: Double = 540.0,
     val dailySaving: Double = 30.0, // Günlük harcanmayan miktar (1 Simit & Çay = 30 TL)
@@ -47,6 +72,10 @@ data class KumbaraUiState(
     val progressFraction: Float = 0f,
     val estimatedReachDate: String = "",
     val motivationMessage: String = "",
+
+    // Vitrin (Wishlist)
+    val wishlist: List<WishlistItemUi> = emptyList(),
+    val showAddWishlistDialog: Boolean = false,
 
     // Dialog Kontrolleri
     val showUrgeDialog: Boolean = false,
@@ -73,10 +102,13 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
 
     private val prefs = application.getSharedPreferences("yeter_app_prefs", Context.MODE_PRIVATE)
 
+    private var rawWishlist: MutableList<WishlistItem> = mutableListOf()
+
     private val _uiState = MutableStateFlow(loadInitialState())
     val uiState: StateFlow<KumbaraUiState> = _uiState.asStateFlow()
 
     init {
+        loadWishlistFromPrefs()
         startLiveTimer()
         checkForUpdates()
     }
@@ -84,10 +116,8 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
     private fun loadInitialState(): KumbaraUiState {
         val targetName = prefs.getString("target_name", "Sony Kulaklık / Hedef") ?: "Sony Kulaklık / Hedef"
         val targetAmount = prefs.getFloat("target_amount", 540.0f).toDouble()
-        // Günlük tasarruf: 1 simit ve çay parası (30 TL)
         val dailySaving = prefs.getFloat("daily_saving", 30.0f).toDouble()
-        
-        // İlk açılışta süreyi şu andan başlat (0 gün 0 saat)
+
         val now = System.currentTimeMillis()
         val startTimestamp = prefs.getLong("start_timestamp", now)
         if (!prefs.contains("start_timestamp")) {
@@ -100,6 +130,54 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
             dailySaving = dailySaving,
             startTimestamp = startTimestamp
         )
+    }
+
+    private fun loadWishlistFromPrefs() {
+        val jsonStr = prefs.getString("wishlist_json", null)
+        rawWishlist = if (jsonStr != null) {
+            try {
+                val array = JSONArray(jsonStr)
+                val list = mutableListOf<WishlistItem>()
+                for (i in 0 until array.length()) {
+                    val obj = array.getJSONObject(i)
+                    list.add(
+                        WishlistItem(
+                            id = obj.getString("id"),
+                            name = obj.getString("name"),
+                            price = obj.getDouble("price"),
+                            addedTimestamp = obj.optLong("addedTimestamp", System.currentTimeMillis())
+                        )
+                    )
+                }
+                list
+            } catch (e: Exception) {
+                createDefaultWishlist()
+            }
+        } else {
+            createDefaultWishlist()
+        }
+    }
+
+    private fun createDefaultWishlist(): MutableList<WishlistItem> {
+        val defaults = mutableListOf(
+            WishlistItem(name = "Altın Bileklik", price = 9500.0),
+            WishlistItem(name = "Kablosuz Kulaklık", price = 4500.0)
+        )
+        saveWishlistToPrefs(defaults)
+        return defaults
+    }
+
+    private fun saveWishlistToPrefs(list: List<WishlistItem>) {
+        val array = JSONArray()
+        for (item in list) {
+            val obj = JSONObject()
+            obj.put("id", item.id)
+            obj.put("name", item.name)
+            obj.put("price", item.price)
+            obj.put("addedTimestamp", item.addedTimestamp)
+            array.put(obj)
+        }
+        prefs.edit().putString("wishlist_json", array.toString()).apply()
     }
 
     private fun startLiveTimer() {
@@ -133,8 +211,8 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                 (savedMoney / state.targetAmount).toFloat().coerceIn(0f, 1f)
             } else 0f
 
-            val targetReachTime = now + (daysLeft * 86400 * 1000L)
             val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("tr", "TR"))
+            val targetReachTime = now + (daysLeft * 86400 * 1000L)
             val reachDateStr = dateFormat.format(Date(targetReachTime))
 
             val motivation = when {
@@ -143,6 +221,42 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                 days in 1..6 -> "Harika gidiyorsun! Gereksiz harcamaları durdurdukça özgürleşiyorsun."
                 days in 7..29 -> "1 haftayı devirdin! Alışveriş dürtünü kontrol edebiliyorsun."
                 else -> "${days} gündür nefsine hakimsin! Hedefe adım adım yaklaşıyorsun."
+            }
+
+            // Vitrin (Wishlist) Geri Sayım Hesaplamaları
+            val updatedWishlistUi = rawWishlist.map { item ->
+                val remMoney = max(0.0, item.price - savedMoney)
+                val isDone = remMoney <= 0.0
+
+                val remSecTotal = if (state.dailySaving > 0 && !isDone) {
+                    ((remMoney / state.dailySaving) * 86400.0).toLong()
+                } else 0L
+
+                val rDays = remSecTotal / 86400L
+                val rHours = (remSecTotal % 86400L) / 3600L
+                val rMin = (remSecTotal % 3600L) / 60L
+                val rSec = remSecTotal % 60L
+
+                val itemProgress = if (item.price > 0) {
+                    (savedMoney / item.price).toFloat().coerceIn(0f, 1f)
+                } else 0f
+
+                val itemReachTime = now + (remSecTotal * 1000L)
+                val itemDateStr = dateFormat.format(Date(itemReachTime))
+
+                WishlistItemUi(
+                    id = item.id,
+                    name = item.name,
+                    price = item.price,
+                    remainingMoney = remMoney,
+                    daysRemaining = rDays,
+                    hoursRemaining = rHours,
+                    minutesRemaining = rMin,
+                    secondsRemaining = rSec,
+                    progressFraction = itemProgress,
+                    estimatedReachDate = itemDateStr,
+                    isCompleted = isDone
+                )
             }
 
             state.copy(
@@ -154,9 +268,35 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                 daysRemaining = daysLeft,
                 progressFraction = progress,
                 estimatedReachDate = reachDateStr,
-                motivationMessage = motivation
+                motivationMessage = motivation,
+                wishlist = updatedWishlistUi
             )
         }
+    }
+
+    fun selectTab(index: Int) {
+        _uiState.update { it.copy(selectedTab = index) }
+    }
+
+    fun openAddWishlistDialog(open: Boolean) {
+        _uiState.update { it.copy(showAddWishlistDialog = open) }
+    }
+
+    fun addWishlistItem(name: String, price: Double) {
+        val trimmed = name.trim()
+        if (trimmed.isNotEmpty() && price > 0) {
+            val item = WishlistItem(name = trimmed, price = price)
+            rawWishlist.add(0, item)
+            saveWishlistToPrefs(rawWishlist)
+            _uiState.update { it.copy(showAddWishlistDialog = false) }
+            updateTimeAndCalculations()
+        }
+    }
+
+    fun deleteWishlistItem(id: String) {
+        rawWishlist.removeAll { it.id == id }
+        saveWishlistToPrefs(rawWishlist)
+        updateTimeAndCalculations()
     }
 
     private fun checkForUpdates() {
@@ -178,7 +318,7 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                     val json = JSONObject(body)
                     val latestTag = json.optString("tag_name", "")
                     val htmlUrl = json.optString("html_url", "https://github.com/lyldz/Yeter/releases")
-                    
+
                     var apkDownloadUrl = htmlUrl
                     val assets = json.optJSONArray("assets")
                     if (assets != null) {
@@ -203,7 +343,7 @@ class KumbaraViewModel(application: Application) : AndroidViewModel(application)
                     }
                 }
             } catch (e: Exception) {
-                // Sessizce geç (çevrimdışıysa çökmesin)
+                // Sessizce geç
             }
         }
     }

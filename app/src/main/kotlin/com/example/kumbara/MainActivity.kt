@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
 
                 KumbaraScreen(
                     state = state,
+                    onSelectTab = { viewModel.selectTab(it) },
                     onOpenUrge = { viewModel.openUrgeDialog(true) },
                     onCloseUrge = { viewModel.openUrgeDialog(false) },
                     onOpenEdit = { viewModel.openEditDialog(true) },
@@ -90,7 +91,10 @@ class MainActivity : ComponentActivity() {
                         } catch (e: Exception) {
                             // Intent açılamazsa fallback
                         }
-                    }
+                    },
+                    onOpenAddWishlist = { viewModel.openAddWishlistDialog(it) },
+                    onAddWishlist = { name, price -> viewModel.addWishlistItem(name, price) },
+                    onDeleteWishlist = { id -> viewModel.deleteWishlistItem(id) }
                 )
             }
         }

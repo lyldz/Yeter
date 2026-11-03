@@ -44,15 +44,17 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: "Yeter! v1.0.2 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.0.3
+          name: "Yeter! v1.0.3 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.0.2 Sürümü Yayında
+            ### 📱 Yeter! v1.0.3 Sürümü Yayında 🚀
 
-            #### 🎨 Yenilikler:
-            - **Özel Uygulama Logosu & Simgesi:** Kırmızı-beyaz renklerde, arkasında para demetleri ve ön planda harcamaları durduran 5 parmak açık 'DUR / YETER' el sembolü ile yeni uygulama simgesi eklendi.
-            - **Kırmızı - Beyaz Tema:** Uygulama genel tema rengi kırmızı ve beyaz renk paletine uyarlandı.
-            - **Tüm Ekranlara Uyumluluk & Otomatik Güncelleme Desteği.**
+            #### 🛍️ Yepyeni Özellik: VİTRİN BÖLÜMÜ (Alt Sekme)
+            - **Alt Menü (Bottom Navigation):** 'Kumbara' ve 'Vitrin' sekmeleri eklendi.
+            - **Beklenen Ürünler Vitrini:** Satın almayı ertelediğiniz veya hayal ettiğiniz ürünleri güncel fiyatlarıyla (örn: Altın Bileklik 9.500 TL, Kulaklık 4.500 TL) ekleyebilirsiniz.
+            - **Canlı GERİ SAYIM Sayacı:** Belirlediğiniz günlük birikim miktarına göre ürün için **GÜN : SAAT : DK : SN** formatında saniye saniye geriye sayım başlar.
+            - **Hedefe Ulaşılınca Kutlama:** Yeterli birikim sağlandığında sayaç yeşil kutlama rozetine dönüşür ve *"Hedefe Ulaşıldı, Satın Alabilirsin!"* mesajı gösterilir.
+            - **Kalıcı Hafıza:** Vitrindeki ürünler hafızada saklanır.
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip doğrudan kurabilirsiniz.
