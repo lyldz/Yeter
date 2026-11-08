@@ -9,6 +9,9 @@ Boşa para harcama dürtüsüne karşı bir fren. Hedefini koy (ör. aylık Clau
 - **8 para birimi, canlı kur:** TRY, USD, EUR, GBP, CHF, JPY, CAD, AUD; kurlar arka planda güncellenir.
 - **Her sabah tasarruf sorusu:** O günün tutarı saniye saniye birikir.
 - **Bildirimler:** Sabah hatırlatması, hedefe yaklaşma ve ulaşma.
+- **Geçmiş ve başarılar:** 35 günlük takvim, dürtü kayıtları, rozetler.
+- **Dürtü anı araçları:** Nefes egzersizi, çalışma saati hesabı.
+- **Yedek:** Verileri dışa aktarma.
 - **Yerel veri:** Veriler cihazda tutulur.
 
 ## Otomatik APK Derleme

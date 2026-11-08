@@ -57,9 +57,14 @@ data class WishlistItemUi(
     val isCompleted: Boolean
 )
 
+data class Badge(val emoji: String, val title: String, val desc: String, val unlocked: Boolean)
+
+// Takvim hücresi: o gün direnilen / yenilen dürtü sayısı
+data class DayCell(val dayStart: Long, val resisted: Int, val slipped: Int, val isToday: Boolean)
+
 data class YeterUiState(
-    val currentAppVersion: String = "v1.0.6",
-    val selectedTab: Int = 0, // 0: Sayaç, 1: Hedefler
+    val currentAppVersion: String = "v1.1.0",
+    val selectedTab: Int = 0, // 0: Sayaç, 1: Vitrin, 2: Geçmiş
     val onboarded: Boolean = true,
 
     // Para birimi (tüm birikim değerleri ana para biriminde tutulur)
@@ -83,6 +88,16 @@ data class YeterUiState(
     val slipCount: Int = 0,
     val baselineSaved: Double = 0.0,
     val todayEarned: Double = 0.0,
+
+    // Geçmiş / başarılar
+    val events: List<UrgeEvent> = emptyList(),
+    val calendar: List<DayCell> = emptyList(),
+    val badges: List<Badge> = emptyList(),
+    val claimedCount: Int = 0,
+
+    // Ayarlar
+    val hourlyWage: Double = 0.0, // Saatlik kazanç (ana para biriminde); 0 = kapalı
+    val notifyHour: Int = 9,
 
     // Günlük tutar sorusu (her sabah)
     val needsDailyPrompt: Boolean = false,
@@ -166,6 +181,10 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             resistedTotal = prefs.getFloat("resisted_total", 0f).toDouble(),
             spentTotal = prefs.getFloat("spent_total", 0f).toDouble(),
             resistedCount = prefs.getInt("resisted_count", 0),
+            claimedCount = prefs.getInt("claimed_count", 0),
+            hourlyWage = prefs.getFloat("hourly_wage", 0f).toDouble(),
+            notifyHour = prefs.getInt("notify_hour", 9),
+            events = Savings.loadEvents(prefs),
             slipCount = prefs.getInt("slip_count", 0),
             urgeActive = prefs.contains("urge_end"),
             urgeName = prefs.getString("urge_name", "") ?: "",
@@ -307,7 +326,36 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
+            // Takvim: son 35 gün
+            val todayStart = Savings.startOfDay(now)
+            val calendar = (34 downTo 0).map { back ->
+                val c = java.util.Calendar.getInstance()
+                c.timeInMillis = todayStart
+                c.add(java.util.Calendar.DAY_OF_YEAR, -back)
+                val ds = c.timeInMillis
+                val de = ds + 26 * 3600_000L // DST güvenli üst sınır; aşağıda gün anahtarıyla eşlenir
+                val key = Savings.dayKey(ds)
+                val dayEvents = state.events.filter { Savings.dayKey(it.ts) == key }
+                DayCell(ds, dayEvents.count { it.resisted }, dayEvents.count { !it.resisted }, back == 0)
+            }
+
+            val savedUsd = Rates.convert(savedMoney, state.homeCurrency, "USD", state.rates)
+            val badges = listOf(
+                Badge("🌱", "İlk Direniş", "İlk dürtüye direndin", state.resistedCount >= 1),
+                Badge("✋", "5 Direniş", "5 dürtüye dur dedin", state.resistedCount >= 5),
+                Badge("🛡️", "25 Direniş", "25 dürtüye dur dedin", state.resistedCount >= 25),
+                Badge("🔥", "3 Gün", "3 gün kesintisiz", days >= 3),
+                Badge("⚡", "1 Hafta", "7 gün kesintisiz", days >= 7),
+                Badge("💎", "1 Ay", "30 gün kesintisiz", days >= 30),
+                Badge("☕", "20 Dolar", "Birikimin 20 USD'ye ulaştı", savedUsd >= 20 || state.claimedCount > 0),
+                Badge("💰", "100 Dolar", "Birikimin 100 USD'ye ulaştı", savedUsd >= 100),
+                Badge("🏆", "İlk Hedef", "İlk hedefini aldın", state.claimedCount >= 1),
+                Badge("🤝", "Dürüst", "Yenilgini kaydettin", state.slipCount >= 1)
+            )
+
             state.copy(
+                calendar = calendar,
+                badges = badges,
                 startTimestamp = startTs,
                 dailySaving = daily,
                 elapsedDays = days,
@@ -463,7 +511,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         return cleanRemote.isNotEmpty() && cleanRemote != cleanCurrent
     }
 
-    fun updateSettings(daily: Double, homeCurrency: String) {
+    fun updateSettings(daily: Double, homeCurrency: String, hourlyWage: Double, notifyHour: Int) {
         val now = System.currentTimeMillis()
         val old = _uiState.value
         if (homeCurrency != old.homeCurrency) {
@@ -485,8 +533,16 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+        val wageHome = if (homeCurrency != old.homeCurrency) Rates.convert(hourlyWage, old.homeCurrency, homeCurrency, old.rates) else hourlyWage
+        val hourChanged = notifyHour != old.notifyHour
+        prefs.edit().putFloat("hourly_wage", wageHome.toFloat()).putInt("notify_hour", notifyHour).apply()
+        if (hourChanged) {
+            try {
+                DailyWorker.schedule(getApplication<Application>(), notifyHour, androidx.work.ExistingPeriodicWorkPolicy.UPDATE)
+            } catch (e: Exception) { /* zamanlama başarısız olursa sessizce geç */ }
+        }
         confirmDailyAmount(daily)
-        _uiState.update { it.copy(showEditDialog = false) }
+        _uiState.update { it.copy(showEditDialog = false, hourlyWage = wageHome, notifyHour = notifyHour) }
         updateTimeAndCalculations()
     }
 
@@ -495,10 +551,11 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         val item = goals.firstOrNull { it.id == id } ?: return
         val cost = toHome(item, _uiState.value)
         val spent = _uiState.value.spentTotal + cost
-        val editor = prefs.edit().putFloat("spent_total", spent.toFloat())
+        val claimed = _uiState.value.claimedCount + 1
+        val editor = prefs.edit().putFloat("spent_total", spent.toFloat()).putInt("claimed_count", claimed)
         listOf(50, 75, 90, 100).forEach { editor.remove("notif_${id}_$it") }
         editor.apply()
-        _uiState.update { it.copy(spentTotal = spent) }
+        _uiState.update { it.copy(spentTotal = spent, claimedCount = claimed) }
         if (!item.recurring) {
             goals.removeAll { it.id == id }
             Savings.saveGoals(prefs, goals)
@@ -534,9 +591,12 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             .putFloat("resisted_total", total.toFloat())
             .putInt("resisted_count", count)
             .apply()
+        val ev = UrgeEvent(System.currentTimeMillis(), s.urgeName, s.urgeAmount, true)
+        Savings.addEvent(prefs, ev)
         clearUrgePrefs()
         _uiState.update {
             it.copy(
+                events = it.events + ev,
                 resistedTotal = total, resistedCount = count,
                 urgeActive = false, urgeName = "", urgeAmount = 0.0, showUrgeDialog = false
             )
@@ -548,11 +608,35 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     fun slipUrge() {
         val count = _uiState.value.slipCount + 1
         prefs.edit().putInt("slip_count", count).apply()
+        val cur = _uiState.value
+        val ev = UrgeEvent(System.currentTimeMillis(), cur.urgeName, cur.urgeAmount, false)
+        Savings.addEvent(prefs, ev)
         clearUrgePrefs()
         _uiState.update {
-            it.copy(slipCount = count, urgeActive = false, urgeName = "", urgeAmount = 0.0, showUrgeDialog = false)
+            it.copy(events = it.events + ev, slipCount = count, urgeActive = false, urgeName = "", urgeAmount = 0.0, showUrgeDialog = false)
         }
         updateTimeAndCalculations()
+    }
+
+    // Yedek: tüm veriyi JSON metni olarak döndürür (paylaşma menüsüyle kaydedilir)
+    fun exportJson(): String {
+        val now = System.currentTimeMillis()
+        val s = _uiState.value
+        val o = JSONObject()
+        o.put("app", "Yeter")
+        o.put("version", s.currentAppVersion)
+        o.put("exported_at", now)
+        o.put("home_currency", s.homeCurrency)
+        o.put("daily_saving", s.dailySaving)
+        o.put("total_saved", s.totalSaved)
+        o.put("resisted_total", s.resistedTotal)
+        o.put("spent_total", s.spentTotal)
+        o.put("resisted_count", s.resistedCount)
+        o.put("slip_count", s.slipCount)
+        o.put("segments", org.json.JSONArray(prefs.getString("segments_json", "[]")))
+        o.put("goals", org.json.JSONArray(prefs.getString("wishlist_json", "[]")))
+        o.put("events", org.json.JSONArray(prefs.getString("events_json", "[]")))
+        return o.toString(2)
     }
 
     fun resetStreak() {

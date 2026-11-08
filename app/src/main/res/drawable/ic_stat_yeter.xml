@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Bildirim paneli simgesi: tek renk Y (sistem renklendirir) -->
+<!-- Bildirim paneli simgesi: tek renk durma eli (sistem renklendirir) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path
-        android:pathData="M5.5,4.5 L12,12.5 L18.5,4.5 M12,12.5 L12,20"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+    <path android:pathData="M9.34,15.38 L9.34,6.77" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.87" android:strokeLineCap="round" />
+    <path android:pathData="M12.61,15.38 L12.61,4.31" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.87" android:strokeLineCap="round" />
+    <path android:pathData="M15.89,15.38 L15.89,5.13" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.87" android:strokeLineCap="round" />
+    <path android:pathData="M19.17,15.38 L19.17,7.59" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.87" android:strokeLineCap="round" />
+    <path android:pathData="M10.98,17.84 L17.53,17.84" android:strokeColor="#FFFFFFFF" android:strokeWidth="6.56" android:strokeLineCap="round" />
+    <path android:pathData="M8.93,18.66 L4.82,13.74" android:strokeColor="#FFFFFFFF" android:strokeWidth="2.87" android:strokeLineCap="round" />
 </vector>

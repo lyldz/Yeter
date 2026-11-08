@@ -66,17 +66,17 @@ class DailyWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
     }
 
     companion object {
-        fun schedule(ctx: Context) {
+        fun schedule(ctx: Context, hour: Int = 9, policy: ExistingPeriodicWorkPolicy = ExistingPeriodicWorkPolicy.KEEP) {
             val c = Calendar.getInstance()
             val target = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 9); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0)
+                set(Calendar.HOUR_OF_DAY, hour); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0)
                 if (timeInMillis <= c.timeInMillis) add(Calendar.DAY_OF_YEAR, 1)
             }
             val delay = target.timeInMillis - c.timeInMillis
             val req = PeriodicWorkRequestBuilder<DailyWorker>(24, TimeUnit.HOURS)
                 .setInitialDelay(delay, TimeUnit.MILLISECONDS)
                 .build()
-            WorkManager.getInstance(ctx).enqueueUniquePeriodicWork("yeter_daily", ExistingPeriodicWorkPolicy.KEEP, req)
+            WorkManager.getInstance(ctx).enqueueUniquePeriodicWork("yeter_daily", policy, req)
         }
     }
 }

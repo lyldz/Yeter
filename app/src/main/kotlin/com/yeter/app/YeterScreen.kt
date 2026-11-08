@@ -1,6 +1,11 @@
 package com.yeter.app
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Refresh
@@ -46,7 +52,8 @@ fun YeterScreen(
     onClaimGoal: (id: String) -> Unit,
     onOpenEdit: () -> Unit,
     onCloseEdit: () -> Unit,
-    onSaveSettings: (daily: Double, homeCurrency: String) -> Unit,
+    onSaveSettings: (daily: Double, homeCurrency: String, hourlyWage: Double, notifyHour: Int) -> Unit,
+    onExport: () -> Unit,
     onConfirmDaily: (amount: Double) -> Unit,
     onRefreshRates: () -> Unit,
     onOpenReset: () -> Unit,
@@ -73,7 +80,7 @@ fun YeterScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (state.selectedTab == 0) "Yeter!" else "Vitrin",
+                                text = when (state.selectedTab) { 0 -> "Yeter!"; 1 -> "Vitrin"; else -> "Geçmiş" },
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp,
                                 color = MaterialTheme.colorScheme.primary
@@ -93,7 +100,7 @@ fun YeterScreen(
                             }
                         }
                         Text(
-                            text = if (state.selectedTab == 0) "Dürtüne karşı dur, hedefine yürü" else "Sabırsızlıkla Beklenen Hedef Ürünler",
+                            text = when (state.selectedTab) { 0 -> "Dürtüne karşı dur, hedefine yürü"; 1 -> "Sabırsızlıkla beklenen hedefler"; else -> "İlerlemen, rozetlerin ve kayıtların" },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -107,7 +114,7 @@ fun YeterScreen(
                         IconButton(onClick = onOpenReset) {
                             Icon(Icons.Default.Refresh, contentDescription = "Sıfırla")
                         }
-                    } else {
+                    } else if (state.selectedTab == 1) {
                         IconButton(onClick = { onOpenAddWishlist(true) }) {
                             Icon(Icons.Default.Add, contentDescription = "Ürün Ekle")
                         }
@@ -134,6 +141,12 @@ fun YeterScreen(
                     icon = { Icon(Icons.Default.Storefront, contentDescription = "Vitrin") },
                     label = { Text("Vitrin", fontWeight = FontWeight.Bold) }
                 )
+                NavigationBarItem(
+                    selected = state.selectedTab == 2,
+                    onClick = { onSelectTab(2) },
+                    icon = { Icon(Icons.Default.History, contentDescription = "Geçmiş") },
+                    label = { Text("Geçmiş", fontWeight = FontWeight.Bold) }
+                )
             }
         },
         floatingActionButton = {
@@ -154,6 +167,8 @@ fun YeterScreen(
                 paddingValues = paddingValues,
                 onOpenUrge = onOpenUrge
             )
+        } else if (state.selectedTab == 2) {
+            HistoryTabContent(state = state, paddingValues = paddingValues)
         } else {
             VitrinTabContent(
                 state = state,
@@ -228,6 +243,13 @@ fun YeterScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true, modifier = Modifier.fillMaxWidth()
                         )
+                        val urgeVal = urgeAmount.replace(',', '.').toDoubleOrNull()
+                        if (state.hourlyWage > 0 && urgeVal != null && urgeVal > 0) {
+                            Text(
+                                "⏱️ Bu, yaklaşık ${String.format(Locale.getDefault(), "%.1f", urgeVal / state.hourlyWage)} saatlik çalışmana denk.",
+                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error
+                            )
+                        }
                         Text(
                             "Hedefin: '${state.targetName}'. Bu hedefe ihanet etmeye değer mi?",
                             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -260,10 +282,27 @@ fun YeterScreen(
                             "${state.urgeName} • ${state.symbol}${String.format(Locale.getDefault(), "%,.2f", state.urgeAmount)}",
                             fontWeight = FontWeight.Bold, fontSize = 15.sp
                         )
-                        Divider()
-                        Text("Gerçekten ihtiyacım var mı, yoksa anlık heves mi?")
-                        Text("1 hafta sonra bunu hatırlayacak mıyım?")
-                        Text("Yarın da istersem, o zaman düşünürüm.")
+                        if (state.hourlyWage > 0) {
+                            Text(
+                                "⏱️ ≈ ${String.format(Locale.getDefault(), "%.1f", state.urgeAmount / state.hourlyWage)} saatlik çalışma",
+                                fontSize = 13.sp, color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        if (waiting) {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { BreathingCircle() }
+                            val tips = listOf(
+                                "Gerçekten ihtiyacım var mı, yoksa anlık heves mi?",
+                                "1 hafta sonra bunu hatırlayacak mıyım?",
+                                "Yarın da istersem, o zaman düşünürüm.",
+                                "Bu para, hedefine bir adım daha demek."
+                            )
+                            Text(
+                                tips[((600 - state.urgeRemainingSec) / 12).toInt().coerceAtLeast(0) % tips.size],
+                                fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            Text("Hâlâ istiyor musun? Dürüstçe karar ver. Yenilirsen de sorun değil, kaydedip devam edersin.")
+                        }
                     }
                 },
                 confirmButton = {
@@ -282,12 +321,17 @@ fun YeterScreen(
     if (state.showEditDialog) {
         var tempDaily by remember { mutableStateOf(state.dailySaving.toString()) }
         var tempCur by remember { mutableStateOf(state.homeCurrency) }
+        var tempWage by remember { mutableStateOf(if (state.hourlyWage > 0) state.hourlyWage.toString() else "") }
+        var tempHour by remember { mutableStateOf(state.notifyHour) }
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
             title = { Text("Ayarlar", fontWeight = FontWeight.Bold) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     OutlinedTextField(
                         value = tempDaily, onValueChange = { tempDaily = it },
                         label = { Text("Günlük tasarruf (${currencySymbol(tempCur).trim()})") },
@@ -301,12 +345,31 @@ fun YeterScreen(
                         "Para birimini değiştirirsen birikimin güncel kurla çevrilir.",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    OutlinedTextField(
+                        value = tempWage, onValueChange = { tempWage = it },
+                        label = { Text("Saatlik kazancın (${currencySymbol(tempCur).trim()}) – isteğe bağlı") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true, modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        "Girersen dürtü anında 'bu kaç saatlik çalışmana denk' gösterilir.",
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text("Sabah hatırlatması", fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { tempHour = (tempHour + 23) % 24 }) { Text("−") }
+                        Text("%02d:00".format(tempHour), fontWeight = FontWeight.Bold)
+                        TextButton(onClick = { tempHour = (tempHour + 1) % 24 }) { Text("+") }
+                    }
+                    OutlinedButton(onClick = onExport, modifier = Modifier.fillMaxWidth()) {
+                        Text("Verileri dışa aktar (yedek)")
+                    }
                 }
             },
             confirmButton = {
                 Button(onClick = {
                     val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
-                    onSaveSettings(daily, tempCur)
+                    onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
                 }) { Text("Kaydet") }
             },
             dismissButton = { TextButton(onClick = onCloseEdit) { Text("İptal") } }
@@ -477,63 +540,8 @@ fun SayacTabContent(
             }
         }
 
-        // Canlı Zaman Sayacı
-        item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "HARCAMADAN GEÇEN SÜRE",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TimeUnitBox(value = state.elapsedDays, unit = "GÜN", modifier = Modifier.weight(1f))
-                        Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                        TimeUnitBox(value = state.elapsedHours, unit = "SAAT", modifier = Modifier.weight(1f))
-                        Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                        TimeUnitBox(value = state.elapsedMinutes, unit = "DK", modifier = Modifier.weight(1f))
-                        Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                        TimeUnitBox(value = state.elapsedSeconds, unit = "SN", modifier = Modifier.weight(1f))
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "CANLI BİRİKEN",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${state.symbol} " + String.format(Locale.getDefault(), "%,.2f", state.totalSaved),
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
+        // Canlı Birikim Sayacı (dev, halkalı)
+        item { HeroCounter(state = state) }
 
         // Bugün ve İstatistikler
         item {
@@ -1100,4 +1108,35 @@ private fun ageMinText(min: Long): String = when {
     min < 60 -> "$min dk"
     min < 1440 -> "${min / 60} sa"
     else -> "${min / 1440} gün"
+}
+
+
+// Nefes egzersizi: büyüyen (nefes al) ve küçülen (ver) daire
+@Composable
+fun BreathingCircle() {
+    val t = rememberInfiniteTransition(label = "breath")
+    val scale by t.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4000, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "breathScale"
+    )
+    var inhale by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(4000L)
+            inhale = !inhale
+        }
+    }
+    Box(modifier = Modifier.size(110.dp), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size((110f * scale).dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+        )
+        Text(
+            if (inhale) "Nefes al" else "Nefes ver",
+            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
+        )
+    }
 }

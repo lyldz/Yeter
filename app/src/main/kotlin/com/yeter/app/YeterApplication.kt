@@ -6,7 +6,8 @@ class YeterApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         try {
-            DailyWorker.schedule(this)
+            val hour = getSharedPreferences("yeter_app_prefs", MODE_PRIVATE).getInt("notify_hour", 9)
+            DailyWorker.schedule(this, hour)
         } catch (e: Exception) {
             // Zamanlama başarısız olursa uygulama yine de çalışır
         }

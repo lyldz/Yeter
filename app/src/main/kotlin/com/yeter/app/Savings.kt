@@ -7,6 +7,9 @@ import java.util.Calendar
 import kotlin.math.max
 import kotlin.math.min
 
+// Dürtü kaydı: direnildi (resisted=true) ya da yenildi
+data class UrgeEvent(val ts: Long, val name: String, val amount: Double, val resisted: Boolean)
+
 // Birikim hesabı: hem ViewModel hem arka plan işi (bildirimler) kullanır.
 object Savings {
 
@@ -115,5 +118,27 @@ object Savings {
             )
         }
         prefs.edit().putString("wishlist_json", arr.toString()).apply()
+    }
+
+    fun loadEvents(prefs: SharedPreferences): List<UrgeEvent> {
+        val str = prefs.getString("events_json", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(str)
+            (0 until arr.length()).map {
+                val o = arr.getJSONObject(it)
+                UrgeEvent(o.getLong("ts"), o.optString("name", ""), o.optDouble("amount", 0.0), o.optBoolean("resisted", true))
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    fun addEvent(prefs: SharedPreferences, e: UrgeEvent) {
+        val list = (loadEvents(prefs) + e).takeLast(500)
+        val arr = JSONArray()
+        for (x in list) {
+            arr.put(JSONObject().put("ts", x.ts).put("name", x.name).put("amount", x.amount).put("resisted", x.resisted))
+        }
+        prefs.edit().putString("events_json", arr.toString()).apply()
     }
 }

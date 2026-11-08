@@ -44,15 +44,23 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.6
-          name: "Yeter! v1.0.6 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.1.0
+          name: "Yeter! v1.1.0 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.0.6 - Döviz kuru düzeltmesi
+            ### 📱 Yeter! v1.1.0 - Yeni tasarım
 
-            - **Kur sistemi sağlamlaştırıldı:** 4 ayrı kaynak sırayla denenir, biri çalışmazsa diğerine geçilir.
-            - **Doğru yedek kurlar:** İnternet yokken kullanılan yaklaşık kurlar güncellendi (USD/TRY artık ~50).
-            - **Hızlı yeniden deneme:** Kur çekilemezse 1 dakikada bir tekrar denenir.
-            - **Kur durumu görünür:** Vitrin'in üstünde ve Ayarlar'da son güncelleme zamanı, durum ve "Yenile" butonu.
+            #### 🎨 Görünüm
+            - **Yeni renkler:** Gece laciverti zemin, nane yeşili vurgu, mercan kırmızısı sadece DUR uyarısı için.
+            - **Yeni logo:** Nane rozet içinde duran el ("Yeter!" = dur). Uygulama ve bildirim ikonları yenilendi.
+            - **Dev canlı sayaç:** Halka şeklinde ilerleme göstergesi, nabız gibi atan parıltı, saniyenin altında akıcı artan birikim sayısı.
+
+            #### ✨ Yeni özellikler
+            - **Geçmiş sekmesi:** Son 35 günün takvimi (direndiğin ve yenildiğin günler), dürtü kayıtları listesi.
+            - **Başarılar:** 10 rozet (ilk direniş, 3 gün / 1 hafta / 1 ay seri, 20 ve 100 dolar birikim, ilk hedef...).
+            - **Dürtü anında nefes egzersizi** ve dönen düşündürücü sorular.
+            - **Çalışma saati hesabı:** Saatlik kazancını girersen dürtü anında "bu kaç saatlik çalışmana denk" gösterilir.
+            - **Bildirim saati ayarı** ve **verileri dışa aktarma (yedek)**.
+            - Kur durumu görünür; 4 kaynaklı sağlam kur sistemi (v1.0.6'dan).
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.

@@ -12,39 +12,40 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 
-// "Kehribar" teması: sıcak koyu zemin + kehribar/turuncu vurgu (açık tema yok)
-val YeterAmber = Color(0xFFFFB020)       // Ana vurgu
-val YeterOrange = Color(0xFFFF8A1F)      // İkincil vurgu
-val YeterBackground = Color(0xFF120D09)  // Zemin
-val YeterSurface = Color(0xFF1B1410)     // Yüzey
-val YeterCard = Color(0xFF241A12)        // Kart
-val YeterText = Color(0xFFF4E9DC)        // Metin
-val YeterGreen = Color(0xFF5BD6A0)       // Hedefe ulaşıldı
-val YeterAlert = Color(0xFFFF5A4F)       // Dürtü uyarısı
+// "Gece laciverti + nane" teması: koyu lacivert zemin, nane/turkuaz vurgu, mercan sadece uyarı için
+val YeterMint = Color(0xFF34D6B4)        // Ana vurgu (birikim, olumlu)
+val YeterBlue = Color(0xFF6FA8FF)        // İkincil vurgu
+val YeterBackground = Color(0xFF0B1220)  // Zemin
+val YeterSurface = Color(0xFF111B2E)     // Yüzey
+val YeterCard = Color(0xFF17233B)        // Kart
+val YeterText = Color(0xFFE8EEF8)        // Metin
+val YeterLime = Color(0xFFA6E36A)        // Hedefe ulaşıldı / pozitif
+val YeterCoral = Color(0xFFFF6B6B)       // Dürtü uyarısı (DUR)
 
 val YeterColorScheme = darkColorScheme(
-    primary = YeterAmber,
-    onPrimary = Color(0xFF2B1A00),
-    primaryContainer = Color(0xFF4A2F0A),
-    onPrimaryContainer = Color(0xFFFFDDB0),
-    secondary = YeterOrange,
-    onSecondary = Color(0xFF2B1200),
-    secondaryContainer = Color(0xFF3A2514),
-    onSecondaryContainer = Color(0xFFFFDCC0),
-    tertiary = YeterGreen,
-    onTertiary = Color(0xFF00311F),
-    tertiaryContainer = Color(0xFF12392A),
-    onTertiaryContainer = Color(0xFFB6F2D5),
+    primary = YeterMint,
+    onPrimary = Color(0xFF003528),
+    primaryContainer = Color(0xFF0F4A3E),
+    onPrimaryContainer = Color(0xFFB4F5E3),
+    secondary = YeterBlue,
+    onSecondary = Color(0xFF002A55),
+    secondaryContainer = Color(0xFF1C3358),
+    onSecondaryContainer = Color(0xFFD3E4FF),
+    tertiary = YeterLime,
+    onTertiary = Color(0xFF1C3300),
+    tertiaryContainer = Color(0xFF2B4A12),
+    onTertiaryContainer = Color(0xFFD2F5A8),
     background = YeterBackground,
     onBackground = YeterText,
     surface = YeterSurface,
     onSurface = YeterText,
     surfaceVariant = YeterCard,
-    onSurfaceVariant = Color(0xFFCDBBA8),
-    outline = Color(0xFF6B5846),
-    error = YeterAlert,
-    onError = Color(0xFF3C0805),
-    errorContainer = Color(0xFF5A1713),
+    onSurfaceVariant = Color(0xFF9FB0C9),
+    outline = Color(0xFF4A5D7A),
+    outlineVariant = Color(0xFF2A3B57),
+    error = YeterCoral,
+    onError = Color(0xFF4A0808),
+    errorContainer = Color(0xFF5A1A1A),
     onErrorContainer = Color(0xFFFFDAD6)
 )
 
@@ -75,7 +76,15 @@ class MainActivity : ComponentActivity() {
                     onClaimGoal = { id -> viewModel.claimGoal(id) },
                     onOpenEdit = { viewModel.openEditDialog(true) },
                     onCloseEdit = { viewModel.openEditDialog(false) },
-                    onSaveSettings = { daily, cur -> viewModel.updateSettings(daily, cur) },
+                    onSaveSettings = { daily, cur, wage, hour -> viewModel.updateSettings(daily, cur, wage, hour) },
+                    onExport = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Yeter yedek")
+                            putExtra(Intent.EXTRA_TEXT, viewModel.exportJson())
+                        }
+                        startActivity(Intent.createChooser(send, "Yedeği paylaş"))
+                    },
                     onConfirmDaily = { viewModel.confirmDailyAmount(it) },
                     onRefreshRates = { viewModel.refreshRatesNow() },
                     onOpenReset = { viewModel.openResetDialog(true) },
