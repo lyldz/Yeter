@@ -213,12 +213,12 @@ fun YeterScreen(
             },
             confirmButton = {
                 Button(onClick = { onDownloadUpdate(state.updateDownloadUrl) }) {
-                    Text("Hemen Güncelle")
+                    Text("Güncelle")
                 }
             },
             dismissButton = {
                 TextButton(onClick = onCloseUpdate) {
-                    Text("Daha Sonra")
+                    Text("Sonra (24 saat)")
                 }
             }
         )

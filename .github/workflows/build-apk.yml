@@ -63,6 +63,7 @@ jobs:
             ### 📱 Yeter! v1.1.1 - Sabit imza ve hedef sabitleme
 
             - **Ana ekrana sabitleme:** Vitrin'deki her hedef kartında 📌 butonu var; sabitlediğin hedef ana ekrandaki halkada ve hedef kartında görünür. Sabitleme yoksa listenin en üstündeki hedef gösterilir.
+            - **Otomatik güncelleme denetimi:** Uygulama arka planda saatte bir yeni sürümü kontrol eder; yeni sürüm varsa "Güncelle" ve "Sonra" seçenekleri çıkar. "Sonra" dersen 24 saat sonra yeniden hatırlatılır. Uygulama kapalıyken de günde bir bildirim gelir.
             - **Üstüne kurulum:** Bu sürümden itibaren tüm APK'lar aynı sabit anahtarla imzalanır; sonraki sürümler mevcut uygulamanın üzerine, verilerin korunarak kurulur.
             - ⚠️ **Bir kerelik:** Daha önce kurduğun sürümler farklı (geçici) imzalıydı. Bu sürümü kurmadan önce eski Yeter'i bir kez kaldırman gerekir (kayıtlı veriler silinir).
 

@@ -25,6 +25,18 @@ class DailyWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx,
         withContext(Dispatchers.IO) { Rates.fetch(prefs) }
 
         val now = System.currentTimeMillis()
+
+        // Arka planda güncelleme denetimi (ertelenmediyse bildirim)
+        if (now >= prefs.getLong("update_snooze_until", 0L)) {
+            val info = withContext(Dispatchers.IO) { Updater.fetchLatest() }
+            val cur = try {
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "0"
+            } catch (e: Exception) { "0" }
+            if (info != null && Updater.isNewer(info.version, cur)) {
+                Notifier.notify(ctx, 3001, "Yeter için yeni sürüm hazır", "${info.version} yayında. Güncellemek için dokun.")
+            }
+        }
+
         val home = prefs.getString("home_currency", "TRY") ?: "TRY"
         val sym = currencySymbol(home)
         val rates = Rates.load(prefs)

@@ -161,7 +161,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         goals = Savings.loadGoals(prefs) ?: mutableListOf()
         startLiveTimer()
         startRateRefresh()
-        checkForUpdates()
+        startUpdateLoop()
     }
 
     private fun loadInitialState(): YeterUiState {
@@ -172,6 +172,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         val segs = Savings.loadSegments(prefs, now)
         val home = prefs.getString("home_currency", "TRY") ?: "TRY"
         return YeterUiState(
+            currentAppVersion = currentVersionName(),
             onboarded = prefs.getBoolean("onboarded", prefs.contains("claude_seeded")),
             homeCurrency = home,
             symbol = currencySymbol(home),
@@ -468,59 +469,40 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         updateTimeAndCalculations()
     }
 
-    private fun checkForUpdates() {
+    // Güncelleme denetimi: açılışta ve saatte bir arka planda. "Sonra" denirse 24 saat ertelenir.
+    private fun startUpdateLoop() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val url = URL("https://api.github.com/repos/lyldz/Yeter/releases/latest")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                conn.setRequestProperty("User-Agent", "YeterApp")
-                conn.connectTimeout = 6000
-                conn.readTimeout = 6000
-
-                if (conn.responseCode == 200) {
-                    val reader = BufferedReader(InputStreamReader(conn.inputStream))
-                    val body = reader.readText()
-                    reader.close()
-
-                    val json = JSONObject(body)
-                    val latestTag = json.optString("tag_name", "")
-                    val htmlUrl = json.optString("html_url", "https://github.com/lyldz/Yeter/releases")
-
-                    var apkDownloadUrl = htmlUrl
-                    val assets = json.optJSONArray("assets")
-                    if (assets != null) {
-                        for (i in 0 until assets.length()) {
-                            val asset = assets.getJSONObject(i)
-                            if (asset.optString("name").endsWith(".apk")) {
-                                apkDownloadUrl = asset.optString("browser_download_url", htmlUrl)
-                                break
-                            }
-                        }
-                    }
-
-                    if (isNewVersionAvailable(latestTag, _uiState.value.currentAppVersion)) {
+            while (true) {
+                val now = System.currentTimeMillis()
+                if (now >= prefs.getLong("update_snooze_until", 0L) && !_uiState.value.showUpdateDialog) {
+                    val info = Updater.fetchLatest()
+                    if (info != null && Updater.isNewer(info.version, _uiState.value.currentAppVersion)) {
                         _uiState.update {
                             it.copy(
                                 hasUpdate = true,
-                                updateVersion = latestTag,
-                                updateDownloadUrl = apkDownloadUrl,
+                                updateVersion = info.version,
+                                updateDownloadUrl = info.downloadUrl,
                                 showUpdateDialog = true
                             )
                         }
                     }
                 }
-            } catch (e: Exception) {
-                // Sessizce geç
+                delay(3600_000L)
             }
         }
     }
 
-    private fun isNewVersionAvailable(remoteTag: String, currentTag: String): Boolean {
-        val cleanRemote = remoteTag.removePrefix("v").trim()
-        val cleanCurrent = currentTag.removePrefix("v").trim()
-        return cleanRemote.isNotEmpty() && cleanRemote != cleanCurrent
+    // "Sonra" ya da "Güncelle" sonrası: 24 saat boyunca tekrar sorma
+    fun closeUpdateDialog() {
+        prefs.edit().putLong("update_snooze_until", System.currentTimeMillis() + Updater.SNOOZE_MS).apply()
+        _uiState.update { it.copy(showUpdateDialog = false) }
+    }
+
+    private fun currentVersionName(): String = try {
+        val app = getApplication<Application>()
+        "v" + (app.packageManager.getPackageInfo(app.packageName, 0).versionName ?: "0")
+    } catch (e: Exception) {
+        "v0"
     }
 
     fun updateSettings(daily: Double, homeCurrency: String, hourlyWage: Double, notifyHour: Int) {
@@ -670,9 +652,5 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
 
     fun openResetDialog(open: Boolean) {
         _uiState.update { it.copy(showResetConfirmDialog = open) }
-    }
-
-    fun closeUpdateDialog() {
-        _uiState.update { it.copy(showUpdateDialog = false) }
     }
 }

@@ -93,6 +93,7 @@ class MainActivity : ComponentActivity() {
                     onConfirmReset = { viewModel.resetStreak() },
                     onCloseUpdate = { viewModel.closeUpdateDialog() },
                     onDownloadUpdate = { url ->
+                        viewModel.closeUpdateDialog()
                         try {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                             startActivity(intent)
