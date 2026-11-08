@@ -44,20 +44,25 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: "Yeter! v1.0.3 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.0.4
+          name: "Yeter! v1.0.4 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.0.3 Sürümü Yayında 🚀
+            ### 📱 Yeter! v1.0.4
 
-            #### 🛍️ Yepyeni Özellik: VİTRİN BÖLÜMÜ (Alt Sekme)
-            - **Alt Menü (Bottom Navigation):** 'Kumbara' ve 'Vitrin' sekmeleri eklendi.
-            - **Beklenen Ürünler Vitrini:** Satın almayı ertelediğiniz veya hayal ettiğiniz ürünleri güncel fiyatlarıyla (örn: Altın Bileklik 9.500 TL, Kulaklık 4.500 TL) ekleyebilirsiniz.
-            - **Canlı GERİ SAYIM Sayacı:** Belirlediğiniz günlük birikim miktarına göre ürün için **GÜN : SAAT : DK : SN** formatında saniye saniye geriye sayım başlar.
-            - **Hedefe Ulaşılınca Kutlama:** Yeterli birikim sağlandığında sayaç yeşil kutlama rozetine dönüşür ve *"Hedefe Ulaşıldı, Satın Alabilirsin!"* mesajı gösterilir.
-            - **Kalıcı Hafıza:** Vitrindeki ürünler hafızada saklanır.
+            Yeter, boşa para harcama dürtüne karşı bir frendir: hedefini koy, dürtüye direndikçe hedefe yaklaş.
+
+            #### 🆕 Yenilikler
+            - **Dürtü akışı:** DUR butonuna basınca ne almak istediğini ve tutarı yazarsın, 10 dakikalık bekleme başlar. Vazgeçersen tutar birikimine eklenir.
+            - **Çoklu hedefler, çoklu para birimi:** Hedefler TL veya USD olabilir, aylık tekrar eden hedef desteklenir. Vitrin'de **Claude Pro ($20/ay)** hazır gelir.
+            - **Günlük otomatik kur:** USD/TRY kuru günde bir kez internetten güncellenir.
+            - **"Aldım" butonu:** Hedefe ulaşınca tutar birikimden düşer.
+            - **Yeni kimlik:** Uygulama adı ve paket adı tamamen Yeter oldu.
+
+            #### ⚠️ Önemli
+            Paket adı değiştiği için bu sürüm eski sürümün üzerine güncelleme olarak kurulmaz, ayrı bir uygulama olarak kurulur. Eski sürümü kaldırabilirsiniz; eski verileriniz yeni uygulamaya taşınmaz.
 
             #### 📥 İndirme:
-            Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip doğrudan kurabilirsiniz.
+            Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.
           files: Yeter.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

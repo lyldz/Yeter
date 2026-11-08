@@ -1,8 +1,8 @@
-package com.example.kumbara
+package com.yeter.app
 
 import android.app.Application
 
-class KumbaraApplication : Application() {
+class YeterApplication : Application() {
     override fun onCreate() {
         super.onCreate()
     }

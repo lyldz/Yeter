@@ -1,4 +1,4 @@
-package com.example.kumbara
+package com.yeter.app
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,21 +35,25 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KumbaraScreen(
-    state: KumbaraUiState,
+fun YeterScreen(
+    state: YeterUiState,
     onSelectTab: (Int) -> Unit,
     onOpenUrge: () -> Unit,
     onCloseUrge: () -> Unit,
+    onStartUrge: (name: String, amount: Double) -> Unit,
+    onResistUrge: () -> Unit,
+    onSlipUrge: () -> Unit,
+    onClaimGoal: (id: String) -> Unit,
     onOpenEdit: () -> Unit,
     onCloseEdit: () -> Unit,
-    onSaveGoal: (name: String, amount: Double, daily: Double) -> Unit,
+    onSaveSettings: (daily: Double, usdRate: Double, displayCurrency: String) -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
     onCloseUpdate: () -> Unit,
     onDownloadUpdate: (url: String) -> Unit,
     onOpenAddWishlist: (Boolean) -> Unit,
-    onAddWishlist: (name: String, price: Double) -> Unit,
+    onAddWishlist: (name: String, price: Double, currency: String, recurring: Boolean) -> Unit,
     onDeleteWishlist: (id: String) -> Unit
 ) {
     Scaffold(
@@ -59,7 +63,7 @@ fun KumbaraScreen(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
-                                painter = painterResource(id = R.drawable.app_logo),
+                                painter = painterResource(id = R.drawable.ic_y_mark),
                                 contentDescription = "Yeter Logo",
                                 modifier = Modifier
                                     .size(34.dp)
@@ -67,7 +71,7 @@ fun KumbaraScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (state.selectedTab == 0) "Yeter!" else "Vitrin",
+                                text = if (state.selectedTab == 0) "Yeter!" else "Hedefler",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp,
                                 color = MaterialTheme.colorScheme.primary
@@ -87,7 +91,7 @@ fun KumbaraScreen(
                             }
                         }
                         Text(
-                            text = if (state.selectedTab == 0) "Harcama Kısıtlama ve Canlı Kumbara" else "Sabırsızlıkla Beklenen Hedef Ürünler",
+                            text = if (state.selectedTab == 0) "Dürtüne karşı dur, hedefine yürü" else "Sabırsızlıkla Beklenen Hedef Ürünler",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -119,8 +123,8 @@ fun KumbaraScreen(
                 NavigationBarItem(
                     selected = state.selectedTab == 0,
                     onClick = { onSelectTab(0) },
-                    icon = { Icon(Icons.Default.Savings, contentDescription = "Kumbara") },
-                    label = { Text("Kumbara", fontWeight = FontWeight.Bold) }
+                    icon = { Icon(Icons.Default.Savings, contentDescription = "Sayaç") },
+                    label = { Text("Sayaç", fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == 1,
@@ -143,7 +147,7 @@ fun KumbaraScreen(
         }
     ) { paddingValues ->
         if (state.selectedTab == 0) {
-            KumbaraTabContent(
+            SayacTabContent(
                 state = state,
                 paddingValues = paddingValues,
                 onOpenUrge = onOpenUrge
@@ -153,6 +157,7 @@ fun KumbaraScreen(
                 state = state,
                 paddingValues = paddingValues,
                 onDelete = onDeleteWishlist,
+                onClaim = onClaimGoal,
                 onOpenAdd = { onOpenAddWishlist(true) }
             )
         }
@@ -197,91 +202,125 @@ fun KumbaraScreen(
         )
     }
 
-    // DIALOG 2: Alışveriş Dürtüsü Geldiğinde
-    if (state.showUrgeDialog) {
-        AlertDialog(
-            onDismissRequest = onCloseUrge,
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            title = {
-                Text(
-                    text = "YETER! Bir saniye dur.",
-                    fontWeight = FontWeight.Black,
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // DIALOG 2: Alışveriş Dürtüsü (form -> bekleme -> karar)
+    if (state.showUrgeDialog || state.urgeActive) {
+        if (!state.urgeActive) {
+            var urgeName by remember { mutableStateOf("") }
+            var urgeAmount by remember { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = onCloseUrge,
+                icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                title = { Text("YETER! Bir saniye dur.", fontWeight = FontWeight.Black, textAlign = TextAlign.Center) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Ne almak istiyorsun ve ne kadar? Yazınca 10 dakikalık bekleme başlar.", fontSize = 14.sp)
+                        OutlinedTextField(
+                            value = urgeName, onValueChange = { urgeName = it },
+                            label = { Text("Ne almak istiyorsun?") },
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = urgeAmount, onValueChange = { urgeAmount = it },
+                            label = { Text("Tutar (TL)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true, modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "Hedefin: '${state.targetName}'. Bu hedefe ihanet etmeye değer mi?",
+                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        val a = urgeAmount.replace(',', '.').toDoubleOrNull() ?: 0.0
+                        if (urgeName.isNotBlank() && a > 0) onStartUrge(urgeName, a)
+                    }) { Text("Beklemeyi Başlat") }
+                },
+                dismissButton = { TextButton(onClick = onCloseUrge) { Text("Kapat") } }
+            )
+        } else {
+            val waiting = state.urgeRemainingSec > 0
+            AlertDialog(
+                onDismissRequest = { },
+                icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                title = {
                     Text(
-                        text = "Şu an gereksiz bir şey satın alma dürtüsü hissediyorsun. Kendine şu 3 soruyu sor:",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
+                        if (waiting) "Bekle... %02d:%02d".format(state.urgeRemainingSec / 60, state.urgeRemainingSec % 60)
+                        else "Süre doldu. Karar zamanı",
+                        fontWeight = FontWeight.Black, textAlign = TextAlign.Center
                     )
-                    Divider()
-                    Text("1️⃣ 24 Saat Kuralı: Gerçekten lazımsa yarın da alabilirsin. Şimdi sepeti kapat.")
-                    Text("2️⃣ İhtiyaç mı, Anlık Heves mi? 1 hafta sonra bunu hatırlayacak mısın?")
-                    Text("3️⃣ Hedefin: '${state.targetName}' için ₺${String.format(Locale.getDefault(), "%.2f", state.targetAmount)} biriktiriyorsun. Kalan gün: ${state.daysRemaining}. Bu hedefe ihanet etmeye değer mi?")
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            "${state.urgeName} • ₺${String.format(Locale.getDefault(), "%,.2f", state.urgeAmount)}",
+                            fontWeight = FontWeight.Bold, fontSize = 15.sp
+                        )
+                        Divider()
+                        Text("Gerçekten ihtiyacım var mı, yoksa anlık heves mi?")
+                        Text("1 hafta sonra bunu hatırlayacak mıyım?")
+                        Text("Yarın da istersem, o zaman düşünürüm.")
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = onResistUrge, enabled = !waiting) {
+                        Text("Vazgeçtim, birikime ekle 💪")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onSlipUrge) { Text("Aldım / Yenildim") }
                 }
-            },
-            confirmButton = {
-                Button(onClick = onCloseUrge) {
-                    Text("İrademe Sahip Çıkıyorum 💪")
-                }
-            }
-        )
+            )
+        }
     }
 
-    // DIALOG 3: Hedef Düzenleme
+    // DIALOG 3: Ayarlar
     if (state.showEditDialog) {
-        var tempName by remember { mutableStateOf(state.targetName) }
-        var tempAmount by remember { mutableStateOf(state.targetAmount.toString()) }
         var tempDaily by remember { mutableStateOf(state.dailySaving.toString()) }
+        var tempRate by remember { mutableStateOf(state.usdRate.toString()) }
+        var tempUsd by remember { mutableStateOf(state.displayCurrency == "USD") }
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
-            title = { Text("Hedefi Düzenle", fontWeight = FontWeight.Bold) },
+            title = { Text("Ayarlar", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
-                        value = tempName,
-                        onValueChange = { tempName = it },
-                        label = { Text("Asıl İhtiyacın / Hedefin") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        value = tempDaily, onValueChange = { tempDaily = it },
+                        label = { Text("Günlük taban birikim (TL)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
-                        value = tempAmount,
-                        onValueChange = { tempAmount = it },
-                        label = { Text("Hedef Tutar (TL)") },
+                        value = tempRate, onValueChange = { tempRate = it },
+                        label = { Text("1 USD = kaç TL?") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = tempDaily,
-                        onValueChange = { tempDaily = it },
-                        label = { Text("Günlük Harcamama Miktarı (TL)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = tempUsd, onCheckedChange = { tempUsd = it })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (tempUsd) "Vitrin dolar ($) gösterir" else "Vitrin lira (₺) gösterir", fontSize = 13.sp)
+                    }
+                    Text(
+                        "Kur günde bir kez otomatik güncellenir" +
+                            (if (state.rateUpdatedAt > 0)
+                                " (son: " + java.text.SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(java.util.Date(state.rateUpdatedAt)) + ")"
+                            else " (henüz çekilemedi, elle girilen kur geçerli)") +
+                            ". İnternet yoksa buradaki kur kullanılır.",
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val amount = tempAmount.toDoubleOrNull() ?: state.targetAmount
-                        val daily = tempDaily.toDoubleOrNull() ?: state.dailySaving
-                        onSaveGoal(tempName, amount, daily)
-                    }
-                ) {
-                    Text("Kaydet")
-                }
+                Button(onClick = {
+                    val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
+                    val rate = tempRate.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: state.usdRate
+                    onSaveSettings(daily, rate, if (tempUsd) "USD" else "TRY")
+                }) { Text("Kaydet") }
             },
-            dismissButton = {
-                TextButton(onClick = onCloseEdit) {
-                    Text("İptal")
-                }
-            }
+            dismissButton = { TextButton(onClick = onCloseEdit) { Text("İptal") } }
         )
     }
 
@@ -290,7 +329,7 @@ fun KumbaraScreen(
         AlertDialog(
             onDismissRequest = onCloseReset,
             icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
-            title = { Text("Kumbarayı Sıfırla?", fontWeight = FontWeight.Bold) },
+            title = { Text("Sayacı Sıfırla?", fontWeight = FontWeight.Bold) },
             text = {
                 Text("Gereksiz bir harcama yaptıysan dürüstçe sıfırlayıp yeniden başlayabilirsin. Bu sefer daha güçlü olacaksın!")
             },
@@ -314,11 +353,13 @@ fun KumbaraScreen(
     if (state.showAddWishlistDialog) {
         var prodName by remember { mutableStateOf("") }
         var prodPrice by remember { mutableStateOf("") }
+        var prodUsd by remember { mutableStateOf(false) }
+        var prodRecurring by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { onOpenAddWishlist(false) },
             icon = { Icon(Icons.Default.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Vitrine Ürün Ekle", fontWeight = FontWeight.Bold) },
+            title = { Text("Hedef Ekle", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -336,23 +377,33 @@ fun KumbaraScreen(
                     OutlinedTextField(
                         value = prodPrice,
                         onValueChange = { prodPrice = it },
-                        label = { Text("Güncel Fiyatı (TL)") },
+                        label = { Text(if (prodUsd) "Fiyat (USD)" else "Fiyat (TL)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = prodUsd, onCheckedChange = { prodUsd = it })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Dolar cinsinden", fontSize = 13.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = prodRecurring, onCheckedChange = { prodRecurring = it })
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Her ay tekrar eder", fontSize = 13.sp)
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        val p = prodPrice.toDoubleOrNull() ?: 0.0
+                        val p = prodPrice.replace(',', '.').toDoubleOrNull() ?: 0.0
                         if (prodName.isNotBlank() && p > 0) {
-                            onAddWishlist(prodName, p)
+                            onAddWishlist(prodName, p, if (prodUsd) "USD" else "TRY", prodRecurring)
                         }
                     }
                 ) {
-                    Text("Vitrine Ekle")
+                    Text("Ekle")
                 }
             },
             dismissButton = {
@@ -364,10 +415,10 @@ fun KumbaraScreen(
     }
 }
 
-// ----------------- SEKME 1: KUMBARA İÇERİĞİ -----------------
+// ----------------- SEKME 1: SAYAÇ İÇERİĞİ -----------------
 @Composable
-fun KumbaraTabContent(
-    state: KumbaraUiState,
+fun SayacTabContent(
+    state: YeterUiState,
     paddingValues: PaddingValues,
     onOpenUrge: () -> Unit
 ) {
@@ -452,7 +503,7 @@ fun KumbaraTabContent(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "KUMBARADA CANLI BİRİKEN",
+                        text = "CANLI BİRİKEN",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -659,9 +710,10 @@ fun KumbaraTabContent(
 // ----------------- SEKME 2: VİTRİN (WISHLIST & GERİ SAYIM) -----------------
 @Composable
 fun VitrinTabContent(
-    state: KumbaraUiState,
+    state: YeterUiState,
     paddingValues: PaddingValues,
     onDelete: (String) -> Unit,
+    onClaim: (String) -> Unit,
     onOpenAdd: () -> Unit
 ) {
     LazyColumn(
@@ -754,7 +806,7 @@ fun VitrinTabContent(
             }
         } else {
             items(state.wishlist, key = { it.id }) { item ->
-                WishlistItemCard(item = item, onDelete = { onDelete(item.id) })
+                WishlistItemCard(item = item, onDelete = { onDelete(item.id) }, onClaim = { onClaim(item.id) })
             }
         }
 
@@ -765,12 +817,14 @@ fun VitrinTabContent(
 @Composable
 fun WishlistItemCard(
     item: WishlistItemUi,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onClaim: () -> Unit
 ) {
+    val sym = item.symbol
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isCompleted) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (item.isCompleted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -793,7 +847,7 @@ fun WishlistItemCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Güncel Fiyat: ₺${String.format(Locale.getDefault(), "%,.2f", item.price)}",
+                        text = "Fiyat: $sym${String.format(Locale.getDefault(), "%,.2f", item.price)}" + if (item.recurring) " • her ay" else "",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
@@ -815,7 +869,7 @@ fun WishlistItemCard(
             if (item.isCompleted) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF2E7D32),
+                    color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -823,15 +877,19 @@ fun WishlistItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "🎉 HEDEFE ULAŞILDI! Gönül rahatlığıyla alabilirsin!",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onTertiary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
                     }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onClaim, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (item.recurring) "Aldım (bu ayki tutar havuzdan düşer)" else "Aldım (tutar havuzdan düşer)")
                 }
             } else {
                 Text(
@@ -879,7 +937,7 @@ fun WishlistItemCard(
             ) {
                 Text(
                     text = if (item.isCompleted) "Tamamı Birikti (%100)"
-                    else "Kalan: ₺${String.format(Locale.getDefault(), "%,.2f", item.remainingMoney)}",
+                    else "Kalan: $sym${String.format(Locale.getDefault(), "%,.2f", item.remainingMoney)}",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

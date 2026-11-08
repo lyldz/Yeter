@@ -10,3 +10,11 @@ gradle/gradle-*
 /local.properties
 .DS_Store
 
+
+# Derleme çıktıları
+build/
+*.apk
+*.aab
+keystore.properties
+*.jks
+*.keystore

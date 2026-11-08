@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kumbara"
+    namespace = "com.yeter.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.kumbara"
+        applicationId = "com.yeter.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 5
+        versionName = "1.0.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
