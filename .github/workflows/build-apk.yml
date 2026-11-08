@@ -44,22 +44,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.4
-          name: "Yeter! v1.0.4 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.0.5
+          name: "Yeter! v1.0.5 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.0.4
-
-            Yeter, boşa para harcama dürtüne karşı bir frendir: hedefini koy, dürtüye direndikçe hedefe yaklaş.
+            ### 📱 Yeter! v1.0.5
 
             #### 🆕 Yenilikler
-            - **Dürtü akışı:** DUR butonuna basınca ne almak istediğini ve tutarı yazarsın, 10 dakikalık bekleme başlar. Vazgeçersen tutar birikimine eklenir.
-            - **Çoklu hedefler, çoklu para birimi:** Hedefler TL veya USD olabilir, aylık tekrar eden hedef desteklenir. Vitrin'de **Claude Pro ($20/ay)** hazır gelir.
-            - **Günlük otomatik kur:** USD/TRY kuru günde bir kez internetten güncellenir.
-            - **"Aldım" butonu:** Hedefe ulaşınca tutar birikimden düşer.
-            - **Yeni kimlik:** Uygulama adı ve paket adı tamamen Yeter oldu.
-
-            #### ⚠️ Önemli
-            Paket adı değiştiği için bu sürüm eski sürümün üzerine güncelleme olarak kurulmaz, ayrı bir uygulama olarak kurulur. Eski sürümü kaldırabilirsiniz; eski verileriniz yeni uygulamaya taşınmaz.
+            - **Karşılama ekranı:** İlk açılışta para birimini, günlük tasarruf tutarını ve ilk hedefini seçersin (Claude Pro $20/ay hazır gelir).
+            - **8 para birimi:** TRY, USD, EUR, GBP, CHF, JPY, CAD, AUD. Kurlar arka planda canlı güncellenir, hepsi birbirine çevrilir.
+            - **Her sabah tasarruf sorusu:** "Bugün ne kadar tasarruf edeceksin?" Seçilen tutar o gün saniye saniye birikir.
+            - **Bildirimler:** Sabah hatırlatması, hedefe yaklaşma (%50, %75, %90) ve hedefe ulaşma bildirimleri.
+            - **Ana sayfa:** Bugün kazanılan tutar, direnilen dürtü sayısı ve yenilgi istatistikleri.
+            - **Para birimi değişimi:** Ana para birimini değiştirirsen birikimin güncel kurla çevrilir.
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.

@@ -58,7 +58,13 @@ class MainActivity : ComponentActivity() {
             MaterialTheme(colorScheme = YeterColorScheme) {
                 val state by viewModel.uiState.collectAsState()
 
-                YeterScreen(
+                if (!state.onboarded) {
+                    OnboardingScreen(
+                        onFinish = { home, daily, name, price, cur, rec ->
+                            viewModel.completeOnboarding(home, daily, name, price, cur, rec)
+                        }
+                    )
+                } else YeterScreen(
                     state = state,
                     onSelectTab = { viewModel.selectTab(it) },
                     onOpenUrge = { viewModel.openUrgeDialog(true) },
@@ -69,7 +75,8 @@ class MainActivity : ComponentActivity() {
                     onClaimGoal = { id -> viewModel.claimGoal(id) },
                     onOpenEdit = { viewModel.openEditDialog(true) },
                     onCloseEdit = { viewModel.openEditDialog(false) },
-                    onSaveSettings = { daily, rate, cur -> viewModel.updateSettings(daily, rate, cur) },
+                    onSaveSettings = { daily, cur -> viewModel.updateSettings(daily, cur) },
+                    onConfirmDaily = { viewModel.confirmDailyAmount(it) },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
                     onConfirmReset = { viewModel.resetStreak() },

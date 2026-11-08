@@ -46,7 +46,8 @@ fun YeterScreen(
     onClaimGoal: (id: String) -> Unit,
     onOpenEdit: () -> Unit,
     onCloseEdit: () -> Unit,
-    onSaveSettings: (daily: Double, usdRate: Double, displayCurrency: String) -> Unit,
+    onSaveSettings: (daily: Double, homeCurrency: String) -> Unit,
+    onConfirmDaily: (amount: Double) -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
@@ -71,7 +72,7 @@ fun YeterScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (state.selectedTab == 0) "Yeter!" else "Hedefler",
+                                text = if (state.selectedTab == 0) "Yeter!" else "Vitrin",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 22.sp,
                                 color = MaterialTheme.colorScheme.primary
@@ -221,7 +222,7 @@ fun YeterScreen(
                         )
                         OutlinedTextField(
                             value = urgeAmount, onValueChange = { urgeAmount = it },
-                            label = { Text("Tutar (TL)") },
+                            label = { Text("Tutar (${state.symbol.trim()})") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true, modifier = Modifier.fillMaxWidth()
                         )
@@ -254,7 +255,7 @@ fun YeterScreen(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
-                            "${state.urgeName} • ₺${String.format(Locale.getDefault(), "%,.2f", state.urgeAmount)}",
+                            "${state.urgeName} • ${state.symbol}${String.format(Locale.getDefault(), "%,.2f", state.urgeAmount)}",
                             fontWeight = FontWeight.Bold, fontSize = 15.sp
                         )
                         Divider()
@@ -278,8 +279,7 @@ fun YeterScreen(
     // DIALOG 3: Ayarlar
     if (state.showEditDialog) {
         var tempDaily by remember { mutableStateOf(state.dailySaving.toString()) }
-        var tempRate by remember { mutableStateOf(state.usdRate.toString()) }
-        var tempUsd by remember { mutableStateOf(state.displayCurrency == "USD") }
+        var tempCur by remember { mutableStateOf(state.homeCurrency) }
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
@@ -288,27 +288,18 @@ fun YeterScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = tempDaily, onValueChange = { tempDaily = it },
-                        label = { Text("Günlük taban birikim (TL)") },
+                        label = { Text("Günlük tasarruf (${currencySymbol(tempCur).trim()})") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
-                    OutlinedTextField(
-                        value = tempRate, onValueChange = { tempRate = it },
-                        label = { Text("1 USD = kaç TL?") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true, modifier = Modifier.fillMaxWidth()
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = tempUsd, onCheckedChange = { tempUsd = it })
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (tempUsd) "Vitrin dolar ($) gösterir" else "Vitrin lira (₺) gösterir", fontSize = 13.sp)
-                    }
+                    Text("Ana para birimi", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    CurrencyPicker(selected = tempCur, onSelect = { tempCur = it })
                     Text(
-                        "Kur günde bir kez otomatik güncellenir" +
+                        "Kurlar arka planda canlı güncellenir" +
                             (if (state.rateUpdatedAt > 0)
                                 " (son: " + java.text.SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(java.util.Date(state.rateUpdatedAt)) + ")"
-                            else " (henüz çekilemedi, elle girilen kur geçerli)") +
-                            ". İnternet yoksa buradaki kur kullanılır.",
+                            else " (henüz çekilemedi, yaklaşık kurlar kullanılıyor)") +
+                            ". Para birimini değiştirirsen birikimin güncel kurla çevrilir.",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -316,11 +307,42 @@ fun YeterScreen(
             confirmButton = {
                 Button(onClick = {
                     val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
-                    val rate = tempRate.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: state.usdRate
-                    onSaveSettings(daily, rate, if (tempUsd) "USD" else "TRY")
+                    onSaveSettings(daily, tempCur)
                 }) { Text("Kaydet") }
             },
             dismissButton = { TextButton(onClick = onCloseEdit) { Text("İptal") } }
+        )
+    }
+
+    // DIALOG: Günaydın, bugünkü tasarruf tutarı
+    if (state.onboarded && state.needsDailyPrompt && !state.showUpdateDialog) {
+        var amountText by remember { mutableStateOf(state.dailySaving.toString()) }
+        AlertDialog(
+            onDismissRequest = { onConfirmDaily(state.dailySaving) },
+            icon = { Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("Günaydın! Bugün ne kadar tasarruf edeceksin?", fontWeight = FontWeight.Black, textAlign = TextAlign.Center) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Seçtiğin tutar bugün saniye saniye birikime eklenir. Dünkü tutar: ${state.symbol}${String.format(Locale.getDefault(), "%,.2f", state.dailySaving)}",
+                        fontSize = 13.sp
+                    )
+                    OutlinedTextField(
+                        value = amountText, onValueChange = { amountText = it },
+                        label = { Text("Bugünkü tutar (${state.symbol.trim()})") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true, modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    onConfirmDaily(amountText.replace(',', '.').toDoubleOrNull() ?: state.dailySaving)
+                }) { Text("Onayla") }
+            },
+            dismissButton = {
+                TextButton(onClick = { onConfirmDaily(state.dailySaving) }) { Text("Dünkü gibi") }
+            }
         )
     }
 
@@ -353,7 +375,7 @@ fun YeterScreen(
     if (state.showAddWishlistDialog) {
         var prodName by remember { mutableStateOf("") }
         var prodPrice by remember { mutableStateOf("") }
-        var prodUsd by remember { mutableStateOf(false) }
+        var prodCur by remember { mutableStateOf(state.homeCurrency) }
         var prodRecurring by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -377,16 +399,12 @@ fun YeterScreen(
                     OutlinedTextField(
                         value = prodPrice,
                         onValueChange = { prodPrice = it },
-                        label = { Text(if (prodUsd) "Fiyat (USD)" else "Fiyat (TL)") },
+                        label = { Text("Fiyat (${prodCur})") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = prodUsd, onCheckedChange = { prodUsd = it })
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Dolar cinsinden", fontSize = 13.sp)
-                    }
+                    CurrencyPicker(selected = prodCur, onSelect = { prodCur = it })
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = prodRecurring, onCheckedChange = { prodRecurring = it })
                         Spacer(modifier = Modifier.width(8.dp))
@@ -399,7 +417,7 @@ fun YeterScreen(
                     onClick = {
                         val p = prodPrice.replace(',', '.').toDoubleOrNull() ?: 0.0
                         if (prodName.isNotBlank() && p > 0) {
-                            onAddWishlist(prodName, p, if (prodUsd) "USD" else "TRY", prodRecurring)
+                            onAddWishlist(prodName, p, prodCur, prodRecurring)
                         }
                     }
                 ) {
@@ -509,11 +527,61 @@ fun SayacTabContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = String.format(Locale.getDefault(), "₺ %.2f", state.totalSaved),
+                        text = "${state.symbol} " + String.format(Locale.getDefault(), "%,.2f", state.totalSaved),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+        }
+
+        // Bugün ve İstatistikler
+        item {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Text(
+                        text = "BUGÜN",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "+${state.symbol}" + String.format(Locale.getDefault(), "%,.2f", state.todayEarned),
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.tertiary
+                    )
+                    Text(
+                        text = "Günlük hedef: ${state.symbol}" + String.format(Locale.getDefault(), "%,.2f", state.dailySaving),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("${state.resistedCount}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
+                            Text("Direnilen dürtü", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.resistedTotal),
+                                fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary
+                            )
+                            Text("Direnerek kurtarılan", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("${state.slipCount}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
+                            Text("Yenilgi", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                 }
             }
         }
@@ -552,7 +620,7 @@ fun SayacTabContent(
                             )
                         }
                         Text(
-                            text = String.format(Locale.getDefault(), "₺ %.2f", state.targetAmount),
+                            text = "${state.symbol} " + String.format(Locale.getDefault(), "%,.2f", state.targetAmount),
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.primary
@@ -582,7 +650,7 @@ fun SayacTabContent(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Günde ₺${String.format(Locale.getDefault(), "%.1f", state.dailySaving)} tasarruf",
+                            text = "Günde ${state.symbol}${String.format(Locale.getDefault(), "%.1f", state.dailySaving)} tasarruf",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -755,7 +823,7 @@ fun VitrinTabContent(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Günlük ₺${String.format(Locale.getDefault(), "%.0f", state.dailySaving)} birikimin ile her ürün için geri sayım canlı çalışıyor!",
+                            text = "Günlük ${state.symbol}${String.format(Locale.getDefault(), "%.0f", state.dailySaving)} birikimin ile her hedef için geri sayım canlı çalışıyor!",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                         )
@@ -847,7 +915,11 @@ fun WishlistItemCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Fiyat: $sym${String.format(Locale.getDefault(), "%,.2f", item.price)}" + if (item.recurring) " • her ay" else "",
+                        text = (if (item.ownSymbol != item.symbol)
+                            "${item.ownSymbol}${String.format(Locale.getDefault(), "%,.2f", item.ownPrice)} ≈ "
+                        else "") +
+                            "$sym${String.format(Locale.getDefault(), "%,.2f", item.price)}" +
+                            (if (item.recurring) " • her ay" else ""),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
