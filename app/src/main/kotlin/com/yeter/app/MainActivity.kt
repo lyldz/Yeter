@@ -77,6 +77,7 @@ class MainActivity : ComponentActivity() {
                     onCloseEdit = { viewModel.openEditDialog(false) },
                     onSaveSettings = { daily, cur -> viewModel.updateSettings(daily, cur) },
                     onConfirmDaily = { viewModel.confirmDailyAmount(it) },
+                    onRefreshRates = { viewModel.refreshRatesNow() },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
                     onConfirmReset = { viewModel.resetStreak() },

@@ -58,7 +58,7 @@ data class WishlistItemUi(
 )
 
 data class YeterUiState(
-    val currentAppVersion: String = "v1.0.5",
+    val currentAppVersion: String = "v1.0.6",
     val selectedTab: Int = 0, // 0: Sayaç, 1: Hedefler
     val onboarded: Boolean = true,
 
@@ -67,6 +67,9 @@ data class YeterUiState(
     val symbol: String = "₺",
     val rates: Map<String, Double> = emptyMap(),
     val rateUpdatedAt: Long = 0L,
+    val rateFailed: Boolean = false, // Son deneme başarısız oldu
+    val ratesRefreshing: Boolean = false,
+    val rateSource: String = "",
 
     val targetName: String = "Hedef ekle",
     val targetAmount: Double = 0.0,
@@ -157,6 +160,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             symbol = currencySymbol(home),
             rates = Rates.load(prefs),
             rateUpdatedAt = prefs.getLong("rate_ts", 0L),
+            rateSource = prefs.getString("rate_source", "") ?: "",
             dailySaving = segs.last().second,
             startTimestamp = segs.first().first,
             resistedTotal = prefs.getFloat("resisted_total", 0f).toDouble(),
@@ -178,21 +182,41 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Kurlar uygulama açıkken saatte bir arka planda yenilenir (bildirim işi de günde bir yeniler)
+    // Kurlar uygulama açıkken arka planda yenilenir: başarılıysa saatte bir,
+    // başarısızsa 1 dakikada bir yeniden denenir (bildirim işi de günde bir yeniler)
     private fun startRateRefresh() {
         viewModelScope.launch(Dispatchers.IO) {
             while (true) {
                 val last = prefs.getLong("rate_ts", 0L)
+                var waitMs = 600_000L
                 if (System.currentTimeMillis() - last > 3600_000L) {
-                    if (Rates.fetch(prefs)) {
-                        _uiState.update {
-                            it.copy(rates = Rates.load(prefs), rateUpdatedAt = prefs.getLong("rate_ts", 0L))
-                        }
-                    }
+                    waitMs = if (doRateFetch()) 600_000L else 60_000L
                 }
-                delay(600_000L)
+                delay(waitMs)
             }
         }
+    }
+
+    private fun doRateFetch(): Boolean {
+        _uiState.update { it.copy(ratesRefreshing = true) }
+        val ok = Rates.fetch(prefs)
+        _uiState.update {
+            it.copy(
+                rates = Rates.load(prefs),
+                rateUpdatedAt = prefs.getLong("rate_ts", 0L),
+                rateSource = prefs.getString("rate_source", "") ?: "",
+                rateFailed = !ok,
+                ratesRefreshing = false
+            )
+        }
+        updateTimeAndCalculations()
+        return ok
+    }
+
+    // Elle "Şimdi yenile"
+    fun refreshRatesNow() {
+        if (_uiState.value.ratesRefreshing) return
+        viewModelScope.launch(Dispatchers.IO) { doRateFetch() }
     }
 
     private fun toHome(item: WishlistItem, state: YeterUiState): Double =

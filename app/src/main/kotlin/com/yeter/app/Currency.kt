@@ -3,7 +3,6 @@ package com.yeter.app
 import android.content.SharedPreferences
 import org.json.JSONObject
 import java.net.HttpURLConnection
-import java.net.URL
 
 data class CurrencyInfo(val code: String, val symbol: String, val name: String)
 
@@ -21,10 +20,32 @@ val CURRENCIES = listOf(
 fun currencySymbol(code: String): String = CURRENCIES.firstOrNull { it.code == code }?.symbol ?: "$code "
 
 object Rates {
-    // 1 USD = x birim. İnternet yokken kullanılan yaklaşık değerler; ilk güncellemede gerçek kurlarla değişir.
+    // Yaklaşık yedek kurlar (Kasım 2026). İnternetten gerçek kur gelince bunların yerine geçer.
     private val FALLBACK = mapOf(
-        "USD" to 1.0, "TRY" to 40.0, "EUR" to 0.92, "GBP" to 0.78,
-        "CHF" to 0.88, "JPY" to 150.0, "CAD" to 1.37, "AUD" to 1.52
+        "USD" to 1.0, "TRY" to 50.0, "EUR" to 0.90, "GBP" to 0.75,
+        "CHF" to 0.82, "JPY" to 158.0, "CAD" to 1.41, "AUD" to 1.46
+    )
+
+    // Kaynaklar sırayla denenir. parse: gövde -> {KOD: 1 USD = x}
+    private data class Source(val name: String, val url: String, val parse: (String) -> Map<String, Double>)
+
+    private val SOURCES = listOf(
+        Source("exchangerate-api", "https://api.exchangerate-api.com/v4/latest/USD") { body ->
+            val o = JSONObject(body).getJSONObject("rates")
+            CURRENCIES.mapNotNull { c -> o.optDouble(c.code, 0.0).takeIf { it > 0 }?.let { c.code to it } }.toMap()
+        },
+        Source("currency-api", "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json") { body ->
+            val o = JSONObject(body).getJSONObject("usd")
+            CURRENCIES.mapNotNull { c -> o.optDouble(c.code.lowercase(), 0.0).takeIf { it > 0 }?.let { c.code to it } }.toMap()
+        },
+        Source("currency-api-2", "https://latest.currency-api.pages.dev/v1/currencies/usd.json") { body ->
+            val o = JSONObject(body).getJSONObject("usd")
+            CURRENCIES.mapNotNull { c -> o.optDouble(c.code.lowercase(), 0.0).takeIf { it > 0 }?.let { c.code to it } }.toMap()
+        },
+        Source("open-er-api", "https://open.er-api.com/v6/latest/USD") { body ->
+            val o = JSONObject(body).getJSONObject("rates")
+            CURRENCIES.mapNotNull { c -> o.optDouble(c.code, 0.0).takeIf { it > 0 }?.let { c.code to it } }.toMap()
+        }
     )
 
     fun load(prefs: SharedPreferences): Map<String, Double> {
@@ -46,27 +67,35 @@ object Rates {
     }
 
     // Bloklayıcıdır, IO iş parçacığında çağır. Başarılıysa true.
+    // Başarıda rates_json + rate_ts + rate_source, başarısızlıkta rate_fail_ts yazar.
     fun fetch(prefs: SharedPreferences): Boolean {
-        return try {
-            val conn = URL("https://open.er-api.com/v6/latest/USD").openConnection() as HttpURLConnection
-            conn.connectTimeout = 8000
-            conn.readTimeout = 8000
-            if (conn.responseCode != 200) return false
-            val body = conn.inputStream.bufferedReader().use { it.readText() }
-            val all = JSONObject(body).getJSONObject("rates")
-            val out = JSONObject()
-            for (c in CURRENCIES) {
-                val v = all.optDouble(c.code, 0.0)
-                if (v > 0) out.put(c.code, v)
+        for (src in SOURCES) {
+            try {
+                val conn = java.net.URL(src.url).openConnection() as HttpURLConnection
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                conn.setRequestProperty("User-Agent", "YeterApp")
+                conn.setRequestProperty("Accept", "application/json")
+                if (conn.responseCode != 200) { conn.disconnect(); continue }
+                val body = conn.inputStream.bufferedReader().use { it.readText() }
+                conn.disconnect()
+                val parsed = src.parse(body)
+                // Tüm para birimleri geldiyse ve TRY makulse kabul et
+                if (parsed.size < CURRENCIES.size || (parsed["TRY"] ?: 0.0) <= 0.0) continue
+                val out = JSONObject()
+                parsed.forEach { (k, v) -> out.put(k, v) }
+                prefs.edit()
+                    .putString("rates_json", out.toString())
+                    .putLong("rate_ts", System.currentTimeMillis())
+                    .putString("rate_source", src.name)
+                    .remove("rate_fail_ts")
+                    .apply()
+                return true
+            } catch (e: Exception) {
+                // sıradaki kaynağı dene
             }
-            if (!out.has("TRY")) return false
-            prefs.edit()
-                .putString("rates_json", out.toString())
-                .putLong("rate_ts", System.currentTimeMillis())
-                .apply()
-            true
-        } catch (e: Exception) {
-            false
         }
+        prefs.edit().putLong("rate_fail_ts", System.currentTimeMillis()).apply()
+        return false
     }
 }

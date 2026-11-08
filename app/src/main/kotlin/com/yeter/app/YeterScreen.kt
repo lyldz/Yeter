@@ -48,6 +48,7 @@ fun YeterScreen(
     onCloseEdit: () -> Unit,
     onSaveSettings: (daily: Double, homeCurrency: String) -> Unit,
     onConfirmDaily: (amount: Double) -> Unit,
+    onRefreshRates: () -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
@@ -159,6 +160,7 @@ fun YeterScreen(
                 paddingValues = paddingValues,
                 onDelete = onDeleteWishlist,
                 onClaim = onClaimGoal,
+                onRefreshRates = onRefreshRates,
                 onOpenAdd = { onOpenAddWishlist(true) }
             )
         }
@@ -294,12 +296,9 @@ fun YeterScreen(
                     )
                     Text("Ana para birimi", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     CurrencyPicker(selected = tempCur, onSelect = { tempCur = it })
+                    RateStatusRow(state = state, onRefresh = onRefreshRates)
                     Text(
-                        "Kurlar arka planda canlı güncellenir" +
-                            (if (state.rateUpdatedAt > 0)
-                                " (son: " + java.text.SimpleDateFormat("dd.MM HH:mm", Locale.getDefault()).format(java.util.Date(state.rateUpdatedAt)) + ")"
-                            else " (henüz çekilemedi, yaklaşık kurlar kullanılıyor)") +
-                            ". Para birimini değiştirirsen birikimin güncel kurla çevrilir.",
+                        "Para birimini değiştirirsen birikimin güncel kurla çevrilir.",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -782,6 +781,7 @@ fun VitrinTabContent(
     paddingValues: PaddingValues,
     onDelete: (String) -> Unit,
     onClaim: (String) -> Unit,
+    onRefreshRates: () -> Unit,
     onOpenAdd: () -> Unit
 ) {
     LazyColumn(
@@ -792,6 +792,9 @@ fun VitrinTabContent(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
+
+        // Kur durumu
+        item { RateStatusRow(state = state, onRefresh = onRefreshRates) }
 
         // Vitrin Bilgi Bannerı
         item {
@@ -1047,4 +1050,54 @@ fun TimeUnitBox(value: Long, unit: String, modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.primary
         )
     }
+}
+
+
+// Kur durumu: son güncelleme zamanı, kaynak ve elle yenileme
+@Composable
+fun RateStatusRow(state: YeterUiState, onRefresh: () -> Unit) {
+    val usdTry = state.rates["TRY"]
+    val ageMin = if (state.rateUpdatedAt > 0) (System.currentTimeMillis() - state.rateUpdatedAt) / 60_000L else -1L
+    val status = when {
+        state.ratesRefreshing -> "Kurlar güncelleniyor..."
+        state.rateUpdatedAt <= 0L -> "Kur henüz çekilemedi, yaklaşık değerler kullanılıyor"
+        state.rateFailed -> "Son deneme başarısız, ${ageMinText(ageMin)} önceki kur kullanılıyor"
+        else -> "Güncel (${ageMinText(ageMin)} önce)"
+    }
+    val ok = !state.rateFailed && state.rateUpdatedAt > 0L
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Kur" + (if (usdTry != null) ": 1 USD = ${String.format(Locale.getDefault(), "%.2f", usdTry)} TRY" else ""),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = status,
+                    fontSize = 11.sp,
+                    color = if (ok) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                )
+            }
+            TextButton(onClick = onRefresh, enabled = !state.ratesRefreshing) {
+                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Yenile", fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+private fun ageMinText(min: Long): String = when {
+    min < 1 -> "az"
+    min < 60 -> "$min dk"
+    min < 1440 -> "${min / 60} sa"
+    else -> "${min / 1440} gün"
 }

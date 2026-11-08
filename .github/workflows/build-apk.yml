@@ -44,18 +44,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.5
-          name: "Yeter! v1.0.5 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.0.6
+          name: "Yeter! v1.0.6 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.0.5
+            ### 📱 Yeter! v1.0.6 - Döviz kuru düzeltmesi
 
-            #### 🆕 Yenilikler
-            - **Karşılama ekranı:** İlk açılışta para birimini, günlük tasarruf tutarını ve ilk hedefini seçersin (Claude Pro $20/ay hazır gelir).
-            - **8 para birimi:** TRY, USD, EUR, GBP, CHF, JPY, CAD, AUD. Kurlar arka planda canlı güncellenir, hepsi birbirine çevrilir.
-            - **Her sabah tasarruf sorusu:** "Bugün ne kadar tasarruf edeceksin?" Seçilen tutar o gün saniye saniye birikir.
-            - **Bildirimler:** Sabah hatırlatması, hedefe yaklaşma (%50, %75, %90) ve hedefe ulaşma bildirimleri.
-            - **Ana sayfa:** Bugün kazanılan tutar, direnilen dürtü sayısı ve yenilgi istatistikleri.
-            - **Para birimi değişimi:** Ana para birimini değiştirirsen birikimin güncel kurla çevrilir.
+            - **Kur sistemi sağlamlaştırıldı:** 4 ayrı kaynak sırayla denenir, biri çalışmazsa diğerine geçilir.
+            - **Doğru yedek kurlar:** İnternet yokken kullanılan yaklaşık kurlar güncellendi (USD/TRY artık ~50).
+            - **Hızlı yeniden deneme:** Kur çekilemezse 1 dakikada bir tekrar denenir.
+            - **Kur durumu görünür:** Vitrin'in üstünde ve Ayarlar'da son güncelleme zamanı, durum ve "Yenile" butonu.
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.
