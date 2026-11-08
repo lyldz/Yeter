@@ -24,7 +24,7 @@ import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.outlined.PushPin as PushPinOutlined
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -953,7 +953,7 @@ fun WishlistItemCard(
 
                 IconButton(onClick = onPin) {
                     Icon(
-                        if (item.isPinned) Icons.Default.PushPin else PushPinOutlined,
+                        if (item.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
                         contentDescription = if (item.isPinned) "Ana ekrandan kaldır" else "Ana ekrana sabitle",
                         tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
