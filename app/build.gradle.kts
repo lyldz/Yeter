@@ -11,12 +11,31 @@ android {
         applicationId = "com.yeter.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.1.0"
+        versionCode = 9
+        versionName = "1.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    // Sabit imza: her derleme aynı anahtarla imzalanır, böylece sürümler birbirinin üstüne kurulabilir.
+    // Anahtar (app/yeter.jks) CI'da gizli değerlerden oluşturulur; yoksa varsayılan debug imzası kullanılır.
+    val yeterKeystore = file("yeter.jks")
+    signingConfigs {
+        if (yeterKeystore.exists()) {
+            create("yeter") {
+                storeFile = yeterKeystore
+                storePassword = System.getenv("YETER_KS_PASS")
+                keyAlias = "yeter"
+                keyPassword = System.getenv("YETER_KS_PASS")
+            }
+        }
+    }
+    buildTypes {
+        getByName("debug") {
+            if (yeterKeystore.exists()) signingConfig = signingConfigs.getByName("yeter")
         }
     }
 

@@ -29,7 +29,20 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Restore signing key
+        env:
+          KS_B64: ${{ secrets.YETER_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > app/yeter.jks
+            echo "Sabit imza anahtarı yüklendi."
+          else
+            echo "UYARI: YETER_KEYSTORE_B64 tanımlı değil, geçici debug imzası kullanılacak (üstüne kurulum çalışmaz)."
+          fi
+
       - name: Build Debug APK
+        env:
+          YETER_KS_PASS: ${{ secrets.YETER_KS_PASS }}
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Rename APK
@@ -44,23 +57,14 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: "Yeter! v1.1.0 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.1.1
+          name: "Yeter! v1.1.1 - Android Kurulum Dosyası (APK)"
           body: |
-            ### 📱 Yeter! v1.1.0 - Yeni tasarım
+            ### 📱 Yeter! v1.1.1 - Sabit imza ve hedef sabitleme
 
-            #### 🎨 Görünüm
-            - **Yeni renkler:** Gece laciverti zemin, nane yeşili vurgu, mercan kırmızısı sadece DUR uyarısı için.
-            - **Yeni logo:** Nane rozet içinde duran el ("Yeter!" = dur). Uygulama ve bildirim ikonları yenilendi.
-            - **Dev canlı sayaç:** Halka şeklinde ilerleme göstergesi, nabız gibi atan parıltı, saniyenin altında akıcı artan birikim sayısı.
-
-            #### ✨ Yeni özellikler
-            - **Geçmiş sekmesi:** Son 35 günün takvimi (direndiğin ve yenildiğin günler), dürtü kayıtları listesi.
-            - **Başarılar:** 10 rozet (ilk direniş, 3 gün / 1 hafta / 1 ay seri, 20 ve 100 dolar birikim, ilk hedef...).
-            - **Dürtü anında nefes egzersizi** ve dönen düşündürücü sorular.
-            - **Çalışma saati hesabı:** Saatlik kazancını girersen dürtü anında "bu kaç saatlik çalışmana denk" gösterilir.
-            - **Bildirim saati ayarı** ve **verileri dışa aktarma (yedek)**.
-            - Kur durumu görünür; 4 kaynaklı sağlam kur sistemi (v1.0.6'dan).
+            - **Ana ekrana sabitleme:** Vitrin'deki her hedef kartında 📌 butonu var; sabitlediğin hedef ana ekrandaki halkada ve hedef kartında görünür. Sabitleme yoksa listenin en üstündeki hedef gösterilir.
+            - **Üstüne kurulum:** Bu sürümden itibaren tüm APK'lar aynı sabit anahtarla imzalanır; sonraki sürümler mevcut uygulamanın üzerine, verilerin korunarak kurulur.
+            - ⚠️ **Bir kerelik:** Daha önce kurduğun sürümler farklı (geçici) imzalıydı. Bu sürümü kurmadan önce eski Yeter'i bir kez kaldırman gerekir (kayıtlı veriler silinir).
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.

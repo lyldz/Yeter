@@ -74,6 +74,7 @@ class MainActivity : ComponentActivity() {
                     onResistUrge = { viewModel.resistUrge() },
                     onSlipUrge = { viewModel.slipUrge() },
                     onClaimGoal = { id -> viewModel.claimGoal(id) },
+                    onPinGoal = { id -> viewModel.togglePinGoal(id) },
                     onOpenEdit = { viewModel.openEditDialog(true) },
                     onCloseEdit = { viewModel.openEditDialog(false) },
                     onSaveSettings = { daily, cur, wage, hour -> viewModel.updateSettings(daily, cur, wage, hour) },

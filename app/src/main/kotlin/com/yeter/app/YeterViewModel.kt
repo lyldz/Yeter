@@ -47,6 +47,7 @@ data class WishlistItemUi(
     val ownPrice: Double,
     val ownSymbol: String,
     val recurring: Boolean,
+    val isPinned: Boolean, // Ana ekranda gösterilen hedef
     val remainingMoney: Double, // ana para biriminde
     val daysRemaining: Long,
     val hoursRemaining: Long,
@@ -63,7 +64,7 @@ data class Badge(val emoji: String, val title: String, val desc: String, val unl
 data class DayCell(val dayStart: Long, val resisted: Int, val slipped: Int, val isToday: Boolean)
 
 data class YeterUiState(
-    val currentAppVersion: String = "v1.1.0",
+    val currentAppVersion: String = "v1.1.1",
     val selectedTab: Int = 0, // 0: Sayaç, 1: Vitrin, 2: Geçmiş
     val onboarded: Boolean = true,
 
@@ -94,6 +95,7 @@ data class YeterUiState(
     val calendar: List<DayCell> = emptyList(),
     val badges: List<Badge> = emptyList(),
     val claimedCount: Int = 0,
+    val pinnedGoalId: String = "", // Ana ekrana sabitlenen hedef (boşsa listenin ilk hedefi)
 
     // Ayarlar
     val hourlyWage: Double = 0.0, // Saatlik kazanç (ana para biriminde); 0 = kapalı
@@ -182,6 +184,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             spentTotal = prefs.getFloat("spent_total", 0f).toDouble(),
             resistedCount = prefs.getInt("resisted_count", 0),
             claimedCount = prefs.getInt("claimed_count", 0),
+            pinnedGoalId = prefs.getString("pinned_goal_id", "") ?: "",
             hourlyWage = prefs.getFloat("hourly_wage", 0f).toDouble(),
             notifyHour = prefs.getInt("notify_hour", 9),
             events = Savings.loadEvents(prefs),
@@ -266,7 +269,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             val urgeRemaining = if (state.urgeActive) max(0L, (urgeEnd - now) / 1000L) else 0L
 
             // Ana hedef: listedeki ilk hedef
-            val primary = goals.firstOrNull()
+            val primary = goals.firstOrNull { it.id == state.pinnedGoalId } ?: goals.firstOrNull()
             val targetName = primary?.name ?: "Hedef ekle"
             val targetAmount = primary?.let { toHome(it, state) } ?: 0.0
 
@@ -315,6 +318,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                     ownPrice = item.price,
                     ownSymbol = currencySymbol(item.currency),
                     recurring = item.recurring,
+                    isPinned = item.id == primary?.id,
                     remainingMoney = remHome,
                     daysRemaining = remSecTotal / 86400L,
                     hoursRemaining = (remSecTotal % 86400L) / 3600L,
@@ -394,6 +398,14 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.update { it.copy(showAddWishlistDialog = false) }
             updateTimeAndCalculations()
         }
+    }
+
+    // Hedefi ana ekrana sabitle; zaten sabitliyse sabitlemeyi kaldır (ilk hedefe döner)
+    fun togglePinGoal(id: String) {
+        val newId = if (_uiState.value.pinnedGoalId == id) "" else id
+        prefs.edit().putString("pinned_goal_id", newId).apply()
+        _uiState.update { it.copy(pinnedGoalId = newId) }
+        updateTimeAndCalculations()
     }
 
     fun deleteWishlistItem(id: String) {

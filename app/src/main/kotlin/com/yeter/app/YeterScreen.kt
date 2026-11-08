@@ -21,8 +21,10 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.NewReleases
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.outlined.PushPin as PushPinOutlined
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -50,6 +52,7 @@ fun YeterScreen(
     onResistUrge: () -> Unit,
     onSlipUrge: () -> Unit,
     onClaimGoal: (id: String) -> Unit,
+    onPinGoal: (id: String) -> Unit,
     onOpenEdit: () -> Unit,
     onCloseEdit: () -> Unit,
     onSaveSettings: (daily: Double, homeCurrency: String, hourlyWage: Double, notifyHour: Int) -> Unit,
@@ -175,6 +178,7 @@ fun YeterScreen(
                 paddingValues = paddingValues,
                 onDelete = onDeleteWishlist,
                 onClaim = onClaimGoal,
+                onPin = onPinGoal,
                 onRefreshRates = onRefreshRates,
                 onOpenAdd = { onOpenAddWishlist(true) }
             )
@@ -789,6 +793,7 @@ fun VitrinTabContent(
     paddingValues: PaddingValues,
     onDelete: (String) -> Unit,
     onClaim: (String) -> Unit,
+    onPin: (String) -> Unit,
     onRefreshRates: () -> Unit,
     onOpenAdd: () -> Unit
 ) {
@@ -885,7 +890,7 @@ fun VitrinTabContent(
             }
         } else {
             items(state.wishlist, key = { it.id }) { item ->
-                WishlistItemCard(item = item, onDelete = { onDelete(item.id) }, onClaim = { onClaim(item.id) })
+                WishlistItemCard(item = item, onDelete = { onDelete(item.id) }, onClaim = { onClaim(item.id) }, onPin = { onPin(item.id) })
             }
         }
 
@@ -897,7 +902,8 @@ fun VitrinTabContent(
 fun WishlistItemCard(
     item: WishlistItemUi,
     onDelete: () -> Unit,
-    onClaim: () -> Unit
+    onClaim: () -> Unit,
+    onPin: () -> Unit
 ) {
     val sym = item.symbol
     Card(
@@ -925,6 +931,14 @@ fun WishlistItemCard(
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    if (item.isPinned) {
+                        Text(
+                            text = "📌 Ana ekranda gösteriliyor",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Text(
                         text = (if (item.ownSymbol != item.symbol)
                             "${item.ownSymbol}${String.format(Locale.getDefault(), "%,.2f", item.ownPrice)} ≈ "
@@ -934,6 +948,14 @@ fun WishlistItemCard(
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                IconButton(onClick = onPin) {
+                    Icon(
+                        if (item.isPinned) Icons.Default.PushPin else PushPinOutlined,
+                        contentDescription = if (item.isPinned) "Ana ekrandan kaldır" else "Ana ekrana sabitle",
+                        tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
                 }
 
