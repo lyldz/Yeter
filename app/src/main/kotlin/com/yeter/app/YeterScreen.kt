@@ -25,7 +25,9 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.NewReleases
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Savings
@@ -280,6 +282,9 @@ fun YeterScreen(
             )
         } else {
             val waiting = state.urgeRemainingSec > 0
+            val urgeCtx = LocalContext.current
+            val urgePrefs = remember { urgeCtx.getSharedPreferences("yeter_app_prefs", android.content.Context.MODE_PRIVATE) }
+            var minimalMode by remember { mutableStateOf(urgePrefs.getBoolean("urge_minimal", false)) }
             AlertDialog(
                 onDismissRequest = { },
                 icon = { Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
@@ -299,11 +304,12 @@ fun YeterScreen(
                         if (state.hourlyWage > 0) {
                             Text(
                                 "⏱️ ≈ ${String.format(Locale.getDefault(), "%.1f", state.urgeAmount / state.hourlyWage)} saatlik çalışma",
-                                fontSize = 14.sp, color = MaterialTheme.colorScheme.error
+                                fontSize = 14.sp,
+                                color = if (minimalMode) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
                             )
                         }
                         if (waiting) {
-                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { BreathingCircle() }
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { BreathingCircle(minimal = minimalMode) }
                             val tips = listOf(
                                 "Gerçekten ihtiyacım var mı, yoksa anlık heves mi?",
                                 "1 hafta sonra bunu hatırlayacak mıyım?",
@@ -314,6 +320,13 @@ fun YeterScreen(
                                 tips[((600 - state.urgeRemainingSec) / 12).toInt().coerceAtLeast(0) % tips.size],
                                 fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                             )
+                            TextButton(
+                                onClick = {
+                                    minimalMode = !minimalMode
+                                    urgePrefs.edit().putBoolean("urge_minimal", minimalMode).apply()
+                                },
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            ) { Text(if (minimalMode) "Sade mod: açık" else "Sade mod: kapalı") }
                         } else {
                             Text("Hâlâ istiyor musun? Dürüstçe karar ver. Yenilirsen de sorun değil, kaydedip devam edersin.")
                         }
@@ -325,7 +338,7 @@ fun YeterScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = onSlipUrge) { Text("Aldım / Yenildim") }
+                    OutlinedButton(onClick = onSlipUrge) { Text("Aldım / Yenildim") }
                 }
             )
         }
@@ -539,10 +552,11 @@ fun SayacTabContent(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "💡",
-                        fontSize = 24.sp,
-                        modifier = Modifier.padding(end = 10.dp)
+                    Icon(
+                        Icons.Rounded.Lightbulb,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(end = 10.dp).size(28.dp)
                     )
                     Text(
                         text = state.motivationMessage,
@@ -839,7 +853,7 @@ fun VitrinTabContent(
                     )
                     Column {
                         Text(
-                            text = "🛍️ Almak İçin Beklenenler",
+                            text = "Almak İçin Beklenenler",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -871,7 +885,11 @@ fun VitrinTabContent(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("🛍️", fontSize = 48.sp)
+                        Icon(
+                            Icons.Rounded.Storefront, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(56.dp)
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "Vitrininde Henüz Ürün Yok",
@@ -1131,7 +1149,7 @@ private fun ageMinText(min: Long): String = when {
 
 // Nefes egzersizi: büyüyen (nefes al) ve küçülen (ver) daire
 @Composable
-fun BreathingCircle() {
+fun BreathingCircle(minimal: Boolean = false) {
     val t = rememberInfiniteTransition(label = "breath")
     val scale by t.animateFloat(
         initialValue = 0.5f, targetValue = 1f,
@@ -1150,11 +1168,15 @@ fun BreathingCircle() {
             modifier = Modifier
                 .size((110f * scale).dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
+                .background(
+                    if (minimal) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)
+                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                )
         )
         Text(
             if (inhale) "Nefes al" else "Nefes ver",
-            fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
+            fontSize = 14.sp, fontWeight = FontWeight.Bold,
+            color = if (minimal) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary
         )
     }
 }

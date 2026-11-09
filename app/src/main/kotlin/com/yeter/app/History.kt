@@ -10,6 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
@@ -131,10 +136,27 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
         item { Text("📝 Dürtü Kayıtları", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         if (state.events.isEmpty()) {
             item {
-                Text(
-                    "Henüz kayıt yok. Ana sayfadaki DUR butonuyla ilk dürtüne direndiğinde burada görünür.",
-                    fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                YeterCard {
+                    Icon(
+                        Icons.Rounded.History, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(40.dp).align(Alignment.CenterHorizontally)
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text(
+                        "Henüz kayıt yok",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        "Ana sayfadaki DUR butonuyla ilk dürtüne direndiğinde burada görünür.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         } else {
             items(state.events.takeLast(40).reversed()) { e ->
@@ -146,7 +168,12 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                         modifier = Modifier.fillMaxWidth().padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(if (e.resisted) "✅" else "❌", fontSize = 20.sp, modifier = Modifier.padding(end = 10.dp))
+                        Icon(
+                            if (e.resisted) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+                            contentDescription = if (e.resisted) "Direnildi" else "Yenildi",
+                            tint = if (e.resisted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(end = 10.dp)
+                        )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(e.name.ifBlank { "(adsız)" }, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
                             Text(dayFmt.format(Date(e.ts)), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
