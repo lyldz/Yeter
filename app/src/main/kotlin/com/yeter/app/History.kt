@@ -7,7 +7,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -96,8 +100,15 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
         items(state.badges.chunked(2)) { pair ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 pair.forEach { b ->
+                    var badgeShown by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { badgeShown = true }
+                    val badgeScale by animateFloatAsState(
+                        targetValue = if (badgeShown) 1f else 0.85f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                        label = "badgeScale"
+                    )
                     Card(
-                        modifier = Modifier.weight(1f).alpha(if (b.unlocked) 1f else 0.4f),
+                        modifier = Modifier.weight(1f).alpha(if (b.unlocked) 1f else 0.4f).graphicsLayer { scaleX = badgeScale; scaleY = badgeScale },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (b.unlocked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant

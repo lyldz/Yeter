@@ -72,7 +72,7 @@ fun HeroCounter(state: YeterUiState) {
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
@@ -143,6 +143,7 @@ fun HeroCounter(state: YeterUiState) {
                             )
                             Text(
                                 text = intText,
+                                style = TabularNums,
                                 fontSize = intSize,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onSurface,
@@ -150,6 +151,7 @@ fun HeroCounter(state: YeterUiState) {
                             )
                             Text(
                                 text = "$sep$fracText",
+                                style = TabularNums,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ringColor,

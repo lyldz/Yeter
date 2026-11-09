@@ -1,7 +1,12 @@
 package com.yeter.app
 
 import androidx.compose.animation.core.*
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -167,24 +172,26 @@ fun YeterScreen(
             }
         }
     ) { paddingValues ->
-        if (state.selectedTab == 0) {
-            SayacTabContent(
-                state = state,
-                paddingValues = paddingValues,
-                onOpenUrge = onOpenUrge
-            )
-        } else if (state.selectedTab == 2) {
-            HistoryTabContent(state = state, paddingValues = paddingValues)
-        } else {
-            VitrinTabContent(
-                state = state,
-                paddingValues = paddingValues,
-                onDelete = onDeleteWishlist,
-                onClaim = onClaimGoal,
-                onPin = onPinGoal,
-                onRefreshRates = onRefreshRates,
-                onOpenAdd = { onOpenAddWishlist(true) }
-            )
+        Crossfade(targetState = state.selectedTab, animationSpec = tween(220), label = "tab") { tab ->
+            if (tab == 0) {
+                SayacTabContent(
+                    state = state,
+                    paddingValues = paddingValues,
+                    onOpenUrge = onOpenUrge
+                )
+            } else if (tab == 2) {
+                HistoryTabContent(state = state, paddingValues = paddingValues)
+            } else {
+                VitrinTabContent(
+                    state = state,
+                    paddingValues = paddingValues,
+                    onDelete = onDeleteWishlist,
+                    onClaim = onClaimGoal,
+                    onPin = onPinGoal,
+                    onRefreshRates = onRefreshRates,
+                    onOpenAdd = { onOpenAddWishlist(true) }
+                )
+            }
         }
     }
 
@@ -615,8 +622,13 @@ fun SayacTabContent(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val goalProgress by animateFloatAsState(
+                        targetValue = state.progressFraction,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+                        label = "goalProgress"
+                    )
                     LinearProgressIndicator(
-                        progress = { state.progressFraction },
+                        progress = { goalProgress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(10.dp)
@@ -732,11 +744,30 @@ fun SayacTabContent(
 
         // Dur Butonu
         item {
+            val urgeSource = remember { MutableInteractionSource() }
+            val urgePressed by urgeSource.collectIsPressedAsState()
+            val urgeScale by animateFloatAsState(
+                targetValue = if (urgePressed) 0.96f else 1f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "urgeScale"
+            )
+            val urgeIdle = rememberInfiniteTransition(label = "urgeIdle")
+            val urgePulse by urgeIdle.animateFloat(
+                initialValue = 1f, targetValue = 1.015f,
+                animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "urgePulse"
+            )
             Button(
                 onClick = onOpenUrge,
+                interactionSource = urgeSource,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp),
+                    .height(52.dp)
+                    .graphicsLayer {
+                        val k = urgeScale * urgePulse
+                        scaleX = k
+                        scaleY = k
+                    },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error
                 ),
@@ -761,6 +792,7 @@ fun SayacTabContent(
 }
 
 // ----------------- SEKME 2: VİTRİN (WISHLIST & GERİ SAYIM) -----------------
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VitrinTabContent(
     state: YeterUiState,
@@ -864,7 +896,7 @@ fun VitrinTabContent(
             }
         } else {
             items(state.wishlist, key = { it.id }) { item ->
-                WishlistItemCard(item = item, onDelete = { onDelete(item.id) }, onClaim = { onClaim(item.id) }, onPin = { onPin(item.id) })
+                WishlistItemCard(modifier = Modifier.animateItemPlacement(), item = item, onDelete = { onDelete(item.id) }, onClaim = { onClaim(item.id) }, onPin = { onPin(item.id) })
             }
         }
 
@@ -874,6 +906,7 @@ fun VitrinTabContent(
 
 @Composable
 fun WishlistItemCard(
+    modifier: Modifier = Modifier,
     item: WishlistItemUi,
     onDelete: () -> Unit,
     onClaim: () -> Unit,
@@ -881,6 +914,7 @@ fun WishlistItemCard(
 ) {
     val sym = item.symbol
     YeterCard(
+        modifier = modifier,
         containerColor = if (item.isCompleted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
     ) {
             // Başlık ve Fiyat Satırı
@@ -983,8 +1017,13 @@ fun WishlistItemCard(
             Spacer(modifier = Modifier.height(14.dp))
 
             // İlerleme Çubuğu
+            val itemProgress by animateFloatAsState(
+                targetValue = item.progressFraction,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+                label = "itemProgress"
+            )
             LinearProgressIndicator(
-                progress = { item.progressFraction },
+                progress = { itemProgress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)

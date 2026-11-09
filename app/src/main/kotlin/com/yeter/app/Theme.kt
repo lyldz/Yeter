@@ -89,6 +89,9 @@ val YeterShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp)
 )
 
+// Sabit genişlikli rakamlar: sayaç değişirken zıplamaz
+val TabularNums = TextStyle(fontFeatureSettings = "tnum")
+
 // Boşluk ölçeği (4 tabanlı)
 object Spacing {
     val xs: Dp = 4.dp
