@@ -24,10 +24,10 @@ import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Savings
-import androidx.compose.material.icons.outlined.History as HistoryOutlined
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.outlined.Savings as SavingsOutlined
-import androidx.compose.material.icons.outlined.Storefront as StorefrontOutlined
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
@@ -138,19 +138,19 @@ fun YeterScreen(
                 NavigationBarItem(
                     selected = state.selectedTab == 0,
                     onClick = { onSelectTab(0) },
-                    icon = { Icon(if (state.selectedTab == 0) Icons.Rounded.Savings else SavingsOutlined, contentDescription = null) },
+                    icon = { Icon(if (state.selectedTab == 0) Icons.Rounded.Savings else Icons.Outlined.Savings, contentDescription = null) },
                     label = { Text("Sayaç", fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == 1,
                     onClick = { onSelectTab(1) },
-                    icon = { Icon(if (state.selectedTab == 1) Icons.Rounded.Storefront else StorefrontOutlined, contentDescription = null) },
+                    icon = { Icon(if (state.selectedTab == 1) Icons.Rounded.Storefront else Icons.Outlined.Storefront, contentDescription = null) },
                     label = { Text("Vitrin", fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == 2,
                     onClick = { onSelectTab(2) },
-                    icon = { Icon(if (state.selectedTab == 2) Icons.Rounded.History else HistoryOutlined, contentDescription = null) },
+                    icon = { Icon(if (state.selectedTab == 2) Icons.Rounded.History else Icons.Outlined.History, contentDescription = null) },
                     label = { Text("Geçmiş", fontWeight = FontWeight.Bold) }
                 )
             }
