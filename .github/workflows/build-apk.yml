@@ -57,15 +57,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.1
-          name: "Yeter! v1.1.1 - Android Kurulum Dosyası (APK)"
+          tag_name: v1.1.2
+          name: "Yeter! v1.1.2 - Görsel yenileme (APK)"
           body: |
-            ### 📱 Yeter! v1.1.1 - Sabit imza ve hedef sabitleme
+            ### 🎨 Yeter! v1.1.2 - Görsel yenileme
 
-            - **Ana ekrana sabitleme:** Vitrin'deki her hedef kartında 📌 butonu var; sabitlediğin hedef ana ekrandaki halkada ve hedef kartında görünür. Sabitleme yoksa listenin en üstündeki hedef gösterilir.
-            - **Otomatik güncelleme denetimi:** Uygulama arka planda saatte bir yeni sürümü kontrol eder; yeni sürüm varsa "Güncelle" ve "Sonra" seçenekleri çıkar. "Sonra" dersen 24 saat sonra yeniden hatırlatılır. Uygulama kapalıyken de günde bir bildirim gelir.
-            - **Üstüne kurulum:** Bu sürümden itibaren tüm APK'lar aynı sabit anahtarla imzalanır; sonraki sürümler mevcut uygulamanın üzerine, verilerin korunarak kurulur.
-            - ⚠️ **Bir kerelik:** Daha önce kurduğun sürümler farklı (geçici) imzalıydı. Bu sürümü kurmadan önce eski Yeter'i bir kez kaldırman gerekir (kayıtlı veriler silinir).
+            - **Yeni tasarım sistemi:** Tek bir tema dosyasında renkler, yazı ölçeği, köşe yarıçapları ve boşluklar toplandı; kartlar ve etiketler her ekranda aynı görünür. Derinlik gölgeyle değil, giderek açılan lacivert yüzeylerle verilir.
+            - **Okunabilirlik:** En küçük yazı boyutu 12 sp oldu, sayaçtaki rakamlar sabit genişlikli olduğu için zıplamaz, kontrastlar güçlendirildi.
+            - **Hareket:** Sekme geçişleri yumuşak, ilerleme çubukları animasyonlu, vitrin kartları yer değiştirirken kayar. DUR butonu basınca küçülür ve hafifçe nabız atar. Rozetler yay hareketiyle belirir.
+            - **DUR ekranı:** "Sade mod" ile renksiz nefes dairesi; "Aldım / Yenildim" düğmesi artık "Vazgeçtim" ile aynı görsel ağırlıkta.
+            - **Erişilebilirlik:** Para birimi seçicide 48 dp dokunma alanı, takvim günleri ekran okuyucuya "3. gün: 2 direnç, 0 yenilgi" diye okunur, alt gezinmede çift okuma giderildi.
+            - **İkonlar:** Tek ikon ailesi (yuvarlak uçlu); seçili sekme dolu, seçilmemiş çizgili. Emoji yerine vektör ikonlar kullanıldı. Geçmiş sekmesine boş durum eklendi.
+            - Veriler korunur; v1.1.1 üzerine doğrudan kurulur.
 
             #### 📥 İndirme:
             Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.
