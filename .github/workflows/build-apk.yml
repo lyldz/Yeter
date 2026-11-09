@@ -57,21 +57,18 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.2
-          name: "Yeter! v1.1.2 - Görsel yenileme (APK)"
+          tag_name: v1.1.3
+          name: "Yeter! v1.1.3 - Sade arayüz (APK)"
           body: |
-            ### 🎨 Yeter! v1.1.2 - Görsel yenileme
+            ### Yeter! v1.1.3 - Sade arayüz
 
-            - **Yeni tasarım sistemi:** Tek bir tema dosyasında renkler, yazı ölçeği, köşe yarıçapları ve boşluklar toplandı; kartlar ve etiketler her ekranda aynı görünür. Derinlik gölgeyle değil, giderek açılan lacivert yüzeylerle verilir.
-            - **Okunabilirlik:** En küçük yazı boyutu 12 sp oldu, sayaçtaki rakamlar sabit genişlikli olduğu için zıplamaz, kontrastlar güçlendirildi.
-            - **Hareket:** Sekme geçişleri yumuşak, ilerleme çubukları animasyonlu, vitrin kartları yer değiştirirken kayar. DUR butonu basınca küçülür ve hafifçe nabız atar. Rozetler yay hareketiyle belirir.
-            - **DUR ekranı:** "Sade mod" ile renksiz nefes dairesi; "Aldım / Yenildim" düğmesi artık "Vazgeçtim" ile aynı görsel ağırlıkta.
-            - **Erişilebilirlik:** Para birimi seçicide 48 dp dokunma alanı, takvim günleri ekran okuyucuya "3. gün: 2 direnç, 0 yenilgi" diye okunur, alt gezinmede çift okuma giderildi.
-            - **İkonlar:** Tek ikon ailesi (yuvarlak uçlu); seçili sekme dolu, seçilmemiş çizgili. Emoji yerine vektör ikonlar kullanıldı. Geçmiş sekmesine boş durum eklendi.
-            - Veriler korunur; v1.1.1 üzerine doğrudan kurulur.
+            - **Ana ekran sadeleşti:** Halkalı canlı sayaç, tek hedef kartı, üç sade sayı (bugün / direnilen / kurtarılan) ve DUR butonu. Gün:saat:dk:sn kutuları tek satırlık süreye dönüştü.
+            - **Üst çubuk:** Alt başlık ve sürüm rozeti kalktı; Düzenle, Sıfırla ve sürüm bilgisi menüye taşındı.
+            - **Dönüm noktaları** varsayılan olarak kapalı, istenince açılır.
+            - Veriler korunur; v1.1.2 üzerine doğrudan kurulur.
 
-            #### 📥 İndirme:
-            Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını telefonunuza indirip kurabilirsiniz.
+            #### İndirme:
+            Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını indirip kurabilirsiniz.
           files: Yeter.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

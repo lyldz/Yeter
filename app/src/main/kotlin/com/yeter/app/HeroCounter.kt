@@ -69,138 +69,87 @@ fun HeroCounter(state: YeterUiState) {
         else -> 30.sp
     }
 
-    Card(
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-                            MaterialTheme.colorScheme.surfaceVariant
-                        )
+        Box(modifier = Modifier.size(260.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val stroke = 12.dp.toPx()
+                val inset = stroke / 2 + 4.dp.toPx()
+                val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(ringColor.copy(alpha = glow * 0.25f), Color.Transparent),
+                        center = center, radius = size.minDimension / 2
+                    ),
+                    radius = size.minDimension / 2
+                )
+                drawArc(
+                    color = track, startAngle = -90f, sweepAngle = 360f, useCenter = false,
+                    topLeft = Offset(inset, inset), size = arcSize,
+                    style = Stroke(width = stroke, cap = StrokeCap.Round)
+                )
+                if (animProgress > 0f) {
+                    drawArc(
+                        brush = Brush.sweepGradient(
+                            listOf(ringColor.copy(alpha = 0.55f), ringColor, ringColor),
+                            center = center
+                        ),
+                        startAngle = -90f, sweepAngle = 360f * animProgress, useCenter = false,
+                        topLeft = Offset(inset, inset), size = arcSize,
+                        style = Stroke(width = stroke, cap = StrokeCap.Round)
                     )
-                )
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp, horizontal = 14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "CANLI BİRİKİM",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp,
-                    color = ringColor
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Halka + sayı
-                Box(modifier = Modifier.size(290.dp), contentAlignment = Alignment.Center) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val stroke = 16.dp.toPx()
-                        val inset = stroke / 2 + 6.dp.toPx()
-                        val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-                        // Parıltı
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                listOf(ringColor.copy(alpha = glow * 0.55f), Color.Transparent),
-                                center = center, radius = size.minDimension / 2
-                            ),
-                            radius = size.minDimension / 2
-                        )
-                        // İz
-                        drawArc(
-                            color = track, startAngle = -90f, sweepAngle = 360f, useCenter = false,
-                            topLeft = Offset(inset, inset), size = arcSize,
-                            style = Stroke(width = stroke, cap = StrokeCap.Round)
-                        )
-                        // İlerleme
-                        if (animProgress > 0f) {
-                            drawArc(
-                                brush = Brush.sweepGradient(
-                                    listOf(ringColor.copy(alpha = 0.55f), ringColor, ringColor),
-                                    center = center
-                                ),
-                                startAngle = -90f, sweepAngle = 360f * animProgress, useCenter = false,
-                                topLeft = Offset(inset, inset), size = arcSize,
-                                style = Stroke(width = stroke, cap = StrokeCap.Round)
-                            )
-                        }
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = state.symbol.trim(),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
-                            )
-                            Text(
-                                text = intText,
-                                style = TabularNums,
-                                fontSize = intSize,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1, softWrap = false
-                            )
-                            Text(
-                                text = "$sep$fracText",
-                                style = TabularNums,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ringColor,
-                                maxLines = 1, softWrap = false,
-                                modifier = Modifier.padding(bottom = 6.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "%${(state.progressFraction * 100).toInt()} • ${state.targetName}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = ringColor,
-                            maxLines = 1,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 36.dp)
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "+${state.symbol}" + String.format(Locale.getDefault(), "%.5f", state.dailySaving / 86_400.0) + " / sn",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = "HARCAMADAN GEÇEN SÜRE",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TimeUnitBox(value = state.elapsedDays, unit = "GÜN", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = state.elapsedHours, unit = "SAAT", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = state.elapsedMinutes, unit = "DK", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = state.elapsedSeconds, unit = "SN", modifier = Modifier.weight(1f))
                 }
             }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = state.symbol.trim(),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
+                    )
+                    Text(
+                        text = intText,
+                        style = TabularNums,
+                        fontSize = intSize,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1, softWrap = false
+                    )
+                    Text(
+                        text = "$sep$fracText",
+                        style = TabularNums,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ringColor,
+                        maxLines = 1, softWrap = false,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "%${(state.progressFraction * 100).toInt()}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = ringColor
+                )
+            }
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = elapsedText(state),
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
+}
+
+// "12 gün 4 sa harcamadan" gibi tek satırlık geçen süre
+private fun elapsedText(s: YeterUiState): String = when {
+    s.elapsedDays > 0 -> "${s.elapsedDays} gün ${s.elapsedHours} sa harcamadan"
+    s.elapsedHours > 0 -> "${s.elapsedHours} sa ${s.elapsedMinutes} dk harcamadan"
+    else -> "${s.elapsedMinutes} dk ${s.elapsedSeconds} sn harcamadan"
 }
