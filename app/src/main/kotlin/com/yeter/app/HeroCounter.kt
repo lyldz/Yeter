@@ -160,7 +160,7 @@ fun HeroCounter(state: YeterUiState) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "%${(state.progressFraction * 100).toInt()} • ${state.targetName}",
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = ringColor,
                             maxLines = 1,
@@ -170,7 +170,7 @@ fun HeroCounter(state: YeterUiState) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "+${state.symbol}" + String.format(Locale.getDefault(), "%.5f", state.dailySaving / 86_400.0) + " / sn",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -179,7 +179,7 @@ fun HeroCounter(state: YeterUiState) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = "HARCAMADAN GEÇEN SÜRE",
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

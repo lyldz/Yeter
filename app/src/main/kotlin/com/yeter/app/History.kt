@@ -27,19 +27,16 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = Spacing.screenEdge),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
 
         // Takvim: son 35 gün
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text("SON 35 GÜN", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.primary)
+            YeterCard {
+                run {
+                    SectionLabel("SON 35 GÜN")
                     Spacer(modifier = Modifier.height(10.dp))
                     state.calendar.chunked(7).forEach { week ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -78,7 +75,7 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Yeşil: dürtüye direndin • Kırmızı: yenildin • Soluk: kayıt yok",
-                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -86,7 +83,7 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
 
         // Rozetler
         item {
-            Text("🏅 Başarılar (${state.badges.count { it.unlocked }}/${state.badges.size})", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+            Text("🏅 Başarılar (${state.badges.count { it.unlocked }}/${state.badges.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         items(state.badges.chunked(2)) { pair ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -101,8 +98,8 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(b.emoji, fontSize = 26.sp, modifier = Modifier.padding(end = 10.dp))
                             Column {
-                                Text(b.title, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text(b.desc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+                                Text(b.title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text(b.desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
                             }
                         }
                     }
@@ -112,18 +109,18 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
         }
 
         // Dürtü kayıtları
-        item { Text("📝 Dürtü Kayıtları", fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+        item { Text("📝 Dürtü Kayıtları", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
         if (state.events.isEmpty()) {
             item {
                 Text(
                     "Henüz kayıt yok. Ana sayfadaki DUR butonuyla ilk dürtüne direndiğinde burada görünür.",
-                    fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
             items(state.events.takeLast(40).reversed()) { e ->
                 Card(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(
@@ -133,7 +130,7 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                         Text(if (e.resisted) "✅" else "❌", fontSize = 20.sp, modifier = Modifier.padding(end = 10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(e.name.ifBlank { "(adsız)" }, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
-                            Text(dayFmt.format(Date(e.ts)), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(dayFmt.format(Date(e.ts)), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text(
                             (if (e.resisted) "+" else "") + state.symbol + String.format(Locale.getDefault(), "%,.2f", e.amount),

@@ -46,7 +46,7 @@ fun CurrencyPicker(selected: String, onSelect: (String) -> Unit) {
             ) {
                 Text(
                     text = "${c.symbol.trim()} ${c.code}",
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 )
@@ -108,7 +108,7 @@ fun OnboardingScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Boşa harcama dürtüsüne dur de, parayı asıl hedefine biriktir.",
-                        fontSize = 17.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Medium
+                        fontSize = 18.sp, textAlign = TextAlign.Center, fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     OnboardingPoint("⏱️", "Canlı sayaç", "Harcamadığın her saniye birikime işler.")
@@ -193,8 +193,8 @@ private fun OnboardingPoint(icon: String, title: String, text: String) {
     ) {
         Text(icon, fontSize = 26.sp, modifier = Modifier.padding(end = 12.dp))
         Column {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Text(text, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -79,7 +79,7 @@ fun YeterScreen(
                                 contentDescription = "Yeter Logo",
                                 modifier = Modifier
                                     .size(34.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(10.dp))
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
@@ -95,7 +95,7 @@ fun YeterScreen(
                             ) {
                                 Text(
                                     text = state.currentAppVersion,
-                                    fontSize = 10.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -202,12 +202,12 @@ fun YeterScreen(
                     Text(
                         text = "🎉 Yeni Sürüm Bulundu!",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
+                        fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Yeter uygulamasının yeni sürümü (${state.updateVersion}) hazır. Daha stabil ve güncel deneyim için güncelleyebilirsiniz.",
-                        fontSize = 13.sp
+                        fontSize = 14.sp
                     )
                 }
             },
@@ -251,7 +251,7 @@ fun YeterScreen(
                         if (state.hourlyWage > 0 && urgeVal != null && urgeVal > 0) {
                             Text(
                                 "⏱️ Bu, yaklaşık ${String.format(Locale.getDefault(), "%.1f", urgeVal / state.hourlyWage)} saatlik çalışmana denk.",
-                                fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error
+                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error
                             )
                         }
                         Text(
@@ -284,12 +284,12 @@ fun YeterScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             "${state.urgeName} • ${state.symbol}${String.format(Locale.getDefault(), "%,.2f", state.urgeAmount)}",
-                            fontWeight = FontWeight.Bold, fontSize = 15.sp
+                            fontWeight = FontWeight.Bold, fontSize = 16.sp
                         )
                         if (state.hourlyWage > 0) {
                             Text(
                                 "⏱️ ≈ ${String.format(Locale.getDefault(), "%.1f", state.urgeAmount / state.hourlyWage)} saatlik çalışma",
-                                fontSize = 13.sp, color = MaterialTheme.colorScheme.error
+                                fontSize = 14.sp, color = MaterialTheme.colorScheme.error
                             )
                         }
                         if (waiting) {
@@ -342,7 +342,7 @@ fun YeterScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, modifier = Modifier.fillMaxWidth()
                     )
-                    Text("Ana para birimi", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Ana para birimi", fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     CurrencyPicker(selected = tempCur, onSelect = { tempCur = it })
                     RateStatusRow(state = state, onRefresh = onRefreshRates)
                     Text(
@@ -391,7 +391,7 @@ fun YeterScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         "Seçtiğin tutar bugün saniye saniye birikime eklenir. Dünkü tutar: ${state.symbol}${String.format(Locale.getDefault(), "%,.2f", state.dailySaving)}",
-                        fontSize = 13.sp
+                        fontSize = 14.sp
                     )
                     OutlinedTextField(
                         value = amountText, onValueChange = { amountText = it },
@@ -452,7 +452,7 @@ fun YeterScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         text = "Almak istediğin ürünü ekle; günlük birikimin ile kaç gün, saat ve saniye kaldığını canlı geri sayım ile takip et!",
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
@@ -474,7 +474,7 @@ fun YeterScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = prodRecurring, onCheckedChange = { prodRecurring = it })
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Her ay tekrar eder", fontSize = 13.sp)
+                        Text("Her ay tekrar eder", fontSize = 14.sp)
                     }
                 }
             },
@@ -510,8 +510,8 @@ fun SayacTabContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = Spacing.screenEdge),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
 
@@ -549,19 +549,8 @@ fun SayacTabContent(
 
         // Bugün ve İstatistikler
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Text(
-                        text = "BUGÜN",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+            YeterCard {
+                    SectionLabel("BUGÜN")
                     Text(
                         text = "+${state.symbol}" + String.format(Locale.getDefault(), "%,.2f", state.todayEarned),
                         fontSize = 26.sp,
@@ -579,60 +568,43 @@ fun SayacTabContent(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${state.resistedCount}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.tertiary)
-                            Text("Direnilen dürtü", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Direnilen dürtü", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.resistedTotal),
                                 fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary
                             )
-                            Text("Direnerek kurtarılan", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Direnerek kurtarılan", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${state.slipCount}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.error)
-                            Text("Yenilgi", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Yenilgi", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                }
             }
         }
 
         // Hedef ve İlerleme Kartı
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
+            YeterCard(containerColor = MaterialTheme.colorScheme.surface) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "🎯 HEDEF",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                            SectionLabel("🎯 HEDEF", color = MaterialTheme.colorScheme.secondary)
                             Text(
                                 text = state.targetName,
-                                fontSize = 17.sp,
+                                fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
                         }
                         Text(
                             text = "${state.symbol} " + String.format(Locale.getDefault(), "%,.2f", state.targetAmount),
-                            fontSize = 17.sp,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -645,7 +617,7 @@ fun SayacTabContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(10.dp)
-                            .clip(RoundedCornerShape(5.dp)),
+                            .clip(RoundedCornerShape(6.dp)),
                     )
 
                     Spacer(modifier = Modifier.height(6.dp))
@@ -670,7 +642,7 @@ fun SayacTabContent(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.secondaryContainer
                     ) {
                         Column(
@@ -681,7 +653,7 @@ fun SayacTabContent(
                             Text(
                                 text = "⏳ Kalan Süre: ${state.daysRemaining} Gün",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
@@ -691,7 +663,6 @@ fun SayacTabContent(
                             )
                         }
                     }
-                }
             }
         }
 
@@ -699,7 +670,7 @@ fun SayacTabContent(
         item {
             Text(
                 text = "🏆 Ne Almak İstersin? (Dönüm Noktaları)",
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -714,7 +685,7 @@ fun SayacTabContent(
                     val reached = state.elapsedDays >= milestone.dayThreshold
                     Card(
                         modifier = Modifier.width(170.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = if (reached) MaterialTheme.colorScheme.tertiaryContainer
                             else MaterialTheme.colorScheme.surfaceVariant
@@ -731,7 +702,7 @@ fun SayacTabContent(
                                 Text(milestone.icon, fontSize = 22.sp)
                                 Text(
                                     text = if (reached) "KAZANDIN 🎉" else "${milestone.dayThreshold}. GÜN",
-                                    fontSize = 10.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Black,
                                     color = if (reached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                                 )
@@ -739,16 +710,16 @@ fun SayacTabContent(
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 text = milestone.title,
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = milestone.suggestedReward,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 14.sp
+                                lineHeight = 16.sp
                             )
                         }
                     }
@@ -766,7 +737,7 @@ fun SayacTabContent(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
                     Icons.Default.Warning,
@@ -776,7 +747,7 @@ fun SayacTabContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "DUR! (Harcama İsteği Geldi)",
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -801,8 +772,8 @@ fun VitrinTabContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(horizontal = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+            .padding(horizontal = Spacing.screenEdge),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         item { Spacer(modifier = Modifier.height(2.dp)) }
 
@@ -875,7 +846,7 @@ fun VitrinTabContent(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "Almak istediğin hayalindeki ürünleri ekle, kaç gün saat kaldığını canlı geri sayım ile takip et!",
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
@@ -906,18 +877,9 @@ fun WishlistItemCard(
     onPin: () -> Unit
 ) {
     val sym = item.symbol
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (item.isCompleted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    YeterCard(
+        containerColor = if (item.isCompleted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
             // Başlık ve Fiyat Satırı
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -934,7 +896,7 @@ fun WishlistItemCard(
                     if (item.isPinned) {
                         Text(
                             text = "📌 Ana ekranda gösteriliyor",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -973,7 +935,7 @@ fun WishlistItemCard(
             // CANLI GERİ SAYIM SAYAÇ KUTULARI VEYA HEDEF ULAŞILDI ROZETİ
             if (item.isCompleted) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -988,7 +950,7 @@ fun WishlistItemCard(
                             text = "🎉 HEDEFE ULAŞILDI! Gönül rahatlığıyla alabilirsin!",
                             color = MaterialTheme.colorScheme.onTertiary,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 14.sp
                         )
                     }
                 }
@@ -997,14 +959,7 @@ fun WishlistItemCard(
                     Text(if (item.recurring) "Aldım (bu ayki tutar havuzdan düşer)" else "Aldım (tutar havuzdan düşer)")
                 }
             } else {
-                Text(
-                    text = "⏳ HEDEFE GERİ SAYIM",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                SectionLabel("⏳ HEDEFE GERİ SAYIM", modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -1030,7 +985,7 @@ fun WishlistItemCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
+                    .clip(RoundedCornerShape(6.dp)),
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1054,7 +1009,6 @@ fun WishlistItemCard(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-        }
     }
 }
 
@@ -1062,20 +1016,20 @@ fun WishlistItemCard(
 fun TimeUnitBox(value: Long, unit: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = String.format(Locale.getDefault(), "%02d", value),
-            fontSize = 17.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Black,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = unit,
-            fontSize = 9.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
@@ -1096,7 +1050,7 @@ fun RateStatusRow(state: YeterUiState, onRefresh: () -> Unit) {
     }
     val ok = !state.rateFailed && state.rateUpdatedAt > 0L
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -1107,12 +1061,12 @@ fun RateStatusRow(state: YeterUiState, onRefresh: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Kur" + (if (usdTry != null) ": 1 USD = ${String.format(Locale.getDefault(), "%.2f", usdTry)} TRY" else ""),
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = status,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = if (ok) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
                 )
             }
@@ -1158,7 +1112,7 @@ fun BreathingCircle() {
         )
         Text(
             if (inhale) "Nefes al" else "Nefes ver",
-            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
+            fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
         )
     }
 }
