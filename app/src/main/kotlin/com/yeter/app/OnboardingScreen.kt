@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -41,8 +43,10 @@ fun CurrencyPicker(selected: String, onSelect: (String) -> Unit) {
                         if (isSel) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.surfaceVariant
                     )
-                    .clickable { onSelect(c.code) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .selectable(selected = isSel, role = Role.RadioButton, onClick = { onSelect(c.code) })
+                    .defaultMinSize(minHeight = 48.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "${c.symbol.trim()} ${c.code}",

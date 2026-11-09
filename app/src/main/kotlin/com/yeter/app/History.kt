@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
@@ -54,7 +56,13 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                                         .aspectRatio(1f)
                                         .padding(vertical = 3.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(color.copy(alpha = if (cell.resisted + cell.slipped > 0) 1f else 0.45f))
+                                        .background(color.copy(alpha = if (cell.resisted + cell.slipped > 0) 1f else 0.6f))
+                                        .semantics {
+                                            contentDescription = "$dayNum. gün: " + when {
+                                                cell.resisted + cell.slipped == 0 -> "kayıt yok"
+                                                else -> "${cell.resisted} direnç, ${cell.slipped} yenilgi"
+                                            }
+                                        }
                                         .then(
                                             if (cell.isToday) Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(10.dp))
                                             else Modifier

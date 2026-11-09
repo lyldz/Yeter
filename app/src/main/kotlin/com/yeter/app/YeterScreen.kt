@@ -14,19 +14,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.NewReleases
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.NewReleases
+import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.outlined.History as HistoryOutlined
 import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Savings as SavingsOutlined
+import androidx.compose.material.icons.outlined.Storefront as StorefrontOutlined
+import androidx.compose.material.icons.rounded.Storefront
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -112,14 +115,14 @@ fun YeterScreen(
                 actions = {
                     if (state.selectedTab == 0) {
                         IconButton(onClick = onOpenEdit) {
-                            Icon(Icons.Default.Edit, contentDescription = "Hedefi Düzenle")
+                            Icon(Icons.Rounded.Edit, contentDescription = "Hedefi Düzenle")
                         }
                         IconButton(onClick = onOpenReset) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Sıfırla")
+                            Icon(Icons.Rounded.Refresh, contentDescription = "Sıfırla")
                         }
                     } else if (state.selectedTab == 1) {
                         IconButton(onClick = { onOpenAddWishlist(true) }) {
-                            Icon(Icons.Default.Add, contentDescription = "Ürün Ekle")
+                            Icon(Icons.Rounded.Add, contentDescription = "Ürün Ekle")
                         }
                     }
                 },
@@ -135,19 +138,19 @@ fun YeterScreen(
                 NavigationBarItem(
                     selected = state.selectedTab == 0,
                     onClick = { onSelectTab(0) },
-                    icon = { Icon(Icons.Default.Savings, contentDescription = "Sayaç") },
+                    icon = { Icon(if (state.selectedTab == 0) Icons.Rounded.Savings else SavingsOutlined, contentDescription = null) },
                     label = { Text("Sayaç", fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == 1,
                     onClick = { onSelectTab(1) },
-                    icon = { Icon(Icons.Default.Storefront, contentDescription = "Vitrin") },
+                    icon = { Icon(if (state.selectedTab == 1) Icons.Rounded.Storefront else StorefrontOutlined, contentDescription = null) },
                     label = { Text("Vitrin", fontWeight = FontWeight.Bold) }
                 )
                 NavigationBarItem(
                     selected = state.selectedTab == 2,
                     onClick = { onSelectTab(2) },
-                    icon = { Icon(Icons.Default.History, contentDescription = "Geçmiş") },
+                    icon = { Icon(if (state.selectedTab == 2) Icons.Rounded.History else HistoryOutlined, contentDescription = null) },
                     label = { Text("Geçmiş", fontWeight = FontWeight.Bold) }
                 )
             }
@@ -159,7 +162,7 @@ fun YeterScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Ürün Ekle")
+                    Icon(Icons.Rounded.Add, contentDescription = "Ürün Ekle")
                 }
             }
         }
@@ -189,7 +192,7 @@ fun YeterScreen(
     if (state.showUpdateDialog) {
         AlertDialog(
             onDismissRequest = onCloseUpdate,
-            icon = { Icon(Icons.Default.NewReleases, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            icon = { Icon(Icons.Rounded.NewReleases, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             title = {
                 Text(
                     text = "Artık Yeter!",
@@ -231,7 +234,7 @@ fun YeterScreen(
             var urgeAmount by remember { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = onCloseUrge,
-                icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                icon = { Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                 title = { Text("YETER! Bir saniye dur.", fontWeight = FontWeight.Black, textAlign = TextAlign.Center) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -272,7 +275,7 @@ fun YeterScreen(
             val waiting = state.urgeRemainingSec > 0
             AlertDialog(
                 onDismissRequest = { },
-                icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                icon = { Icon(Icons.Rounded.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                 title = {
                     Text(
                         if (waiting) "Bekle... %02d:%02d".format(state.urgeRemainingSec / 60, state.urgeRemainingSec % 60)
@@ -385,7 +388,7 @@ fun YeterScreen(
         var amountText by remember { mutableStateOf(state.dailySaving.toString()) }
         AlertDialog(
             onDismissRequest = { onConfirmDaily(state.dailySaving) },
-            icon = { Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            icon = { Icon(Icons.Rounded.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             title = { Text("Günaydın! Bugün ne kadar tasarruf edeceksin?", fontWeight = FontWeight.Black, textAlign = TextAlign.Center) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -416,7 +419,7 @@ fun YeterScreen(
     if (state.showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = onCloseReset,
-            icon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+            icon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
             title = { Text("Sayacı Sıfırla?", fontWeight = FontWeight.Bold) },
             text = {
                 Text("Gereksiz bir harcama yaptıysan dürüstçe sıfırlayıp yeniden başlayabilirsin. Bu sefer daha güçlü olacaksın!")
@@ -446,7 +449,7 @@ fun YeterScreen(
 
         AlertDialog(
             onDismissRequest = { onOpenAddWishlist(false) },
-            icon = { Icon(Icons.Default.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            icon = { Icon(Icons.Rounded.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             title = { Text("Hedef Ekle", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -740,8 +743,8 @@ fun SayacTabContent(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Icon(
-                    Icons.Default.Warning,
-                    contentDescription = "Dürtü",
+                    Icons.Rounded.Warning,
+                    contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -795,7 +798,7 @@ fun VitrinTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Storefront,
+                        Icons.Rounded.Storefront,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
@@ -852,7 +855,7 @@ fun VitrinTabContent(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = onOpenAdd) {
-                            Icon(Icons.Default.Add, contentDescription = null)
+                            Icon(Icons.Rounded.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("İlk Ürünü Ekle")
                         }
@@ -915,7 +918,7 @@ fun WishlistItemCard(
 
                 IconButton(onClick = onPin) {
                     Icon(
-                        if (item.isPinned) Icons.Default.PushPin else Icons.Outlined.PushPin,
+                        if (item.isPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
                         contentDescription = if (item.isPinned) "Ana ekrandan kaldır" else "Ana ekrana sabitle",
                         tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                     )
@@ -923,7 +926,7 @@ fun WishlistItemCard(
 
                 IconButton(onClick = onDelete) {
                     Icon(
-                        Icons.Default.Delete,
+                        Icons.Rounded.Delete,
                         contentDescription = "Sil",
                         tint = MaterialTheme.colorScheme.outline
                     )
@@ -944,7 +947,7 @@ fun WishlistItemCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiary)
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "🎉 HEDEFE ULAŞILDI! Gönül rahatlığıyla alabilirsin!",
@@ -1071,7 +1074,7 @@ fun RateStatusRow(state: YeterUiState, onRefresh: () -> Unit) {
                 )
             }
             TextButton(onClick = onRefresh, enabled = !state.ratesRefreshing) {
-                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Yenile", fontSize = 12.sp)
             }
