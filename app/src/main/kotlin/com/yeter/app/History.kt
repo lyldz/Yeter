@@ -91,7 +91,7 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Yeşil: dürtüye direndin • Kırmızı: yenildin • Soluk: kayıt yok",
+                        "Yeşil: direndin · Kırmızı: yenildin",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -100,40 +100,29 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
 
         // Rozetler
         item {
-            Text("🏅 Başarılar (${state.badges.count { it.unlocked }}/${state.badges.size})", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Başarılar · ${state.badges.count { it.unlocked }}/${state.badges.size}", style = MaterialTheme.typography.titleMedium)
         }
-        items(state.badges.chunked(2)) { pair ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEach { b ->
-                    var badgeShown by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) { badgeShown = true }
-                    val badgeScale by animateFloatAsState(
-                        targetValue = if (badgeShown) 1f else 0.85f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                        label = "badgeScale"
-                    )
-                    Card(
-                        modifier = Modifier.weight(1f).alpha(if (b.unlocked) 1f else 0.4f).graphicsLayer { scaleX = badgeScale; scaleY = badgeScale },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (b.unlocked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(b.emoji, fontSize = 26.sp, modifier = Modifier.padding(end = 10.dp))
-                            Column {
-                                Text(b.title, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                Text(b.desc, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 16.sp)
-                            }
-                        }
-                    }
+        items(state.badges) { b ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(if (b.unlocked) 1f else 0.4f)
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(b.emoji, fontSize = 22.sp, modifier = Modifier.padding(end = 12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(b.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                    Text(b.desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                if (pair.size == 1) Spacer(modifier = Modifier.weight(1f))
+                if (b.unlocked) {
+                    Icon(Icons.Rounded.CheckCircle, contentDescription = "Kazanıldı", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                }
             }
         }
 
         // Dürtü kayıtları
-        item { Text("📝 Dürtü Kayıtları", fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        item { Text("Kayıtlar", style = MaterialTheme.typography.titleMedium) }
         if (state.events.isEmpty()) {
             item {
                 YeterCard {
@@ -160,30 +149,25 @@ fun HistoryTabContent(state: YeterUiState, paddingValues: PaddingValues) {
             }
         } else {
             items(state.events.takeLast(40).reversed()) { e ->
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            if (e.resisted) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
-                            contentDescription = if (e.resisted) "Direnildi" else "Yenildi",
-                            tint = if (e.resisted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(end = 10.dp)
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(e.name.ifBlank { "(adsız)" }, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1)
-                            Text(dayFmt.format(Date(e.ts)), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Text(
-                            (if (e.resisted) "+" else "") + state.symbol + String.format(Locale.getDefault(), "%,.2f", e.amount),
-                            fontWeight = FontWeight.Black,
-                            color = if (e.resisted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                        )
+                    Icon(
+                        if (e.resisted) Icons.Rounded.CheckCircle else Icons.Rounded.Cancel,
+                        contentDescription = if (e.resisted) "Direnildi" else "Yenildi",
+                        tint = if (e.resisted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(end = 12.dp).size(20.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(e.name.ifBlank { "(adsız)" }, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                        Text(dayFmt.format(Date(e.ts)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(
+                        (if (e.resisted) "+" else "") + state.symbol + String.format(Locale.getDefault(), "%,.2f", e.amount),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (e.resisted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                    )
                 }
             }
         }

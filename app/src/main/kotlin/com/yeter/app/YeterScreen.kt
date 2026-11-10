@@ -721,87 +721,28 @@ fun VitrinTabContent(
         // Kur durumu
         item { RateStatusRow(state = state, onRefresh = onRefreshRates) }
 
-        // Vitrin Bilgi Bannerı
-        item {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Rounded.Storefront,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .padding(end = 10.dp)
-                    )
-                    Column {
-                        Text(
-                            text = "Almak İçin Beklenenler",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "Günlük ${state.symbol}${String.format(Locale.getDefault(), "%.0f", state.dailySaving)} birikimin ile her hedef için geri sayım canlı çalışıyor!",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                        )
-                    }
-                }
-            }
-        }
-
         if (state.wishlist.isEmpty()) {
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 30.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    shape = RoundedCornerShape(16.dp)
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp, horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Rounded.Storefront, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(56.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Vitrininde Henüz Ürün Yok",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Almak istediğin hayalindeki ürünleri ekle, kaç gün saat kaldığını canlı geri sayım ile takip et!",
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onOpenAdd) {
-                            Icon(Icons.Rounded.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("İlk Ürünü Ekle")
-                        }
-                    }
+                    Icon(
+                        Icons.Rounded.Storefront, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Vitrin boş", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Almak istediğin bir şey ekle, ne zaman alabileceğini gör.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(onClick = onOpenAdd) { Text("Ürün ekle") }
                 }
             }
         } else {
@@ -823,210 +764,104 @@ fun WishlistItemCard(
     onPin: () -> Unit
 ) {
     val sym = item.symbol
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     YeterCard(
         modifier = modifier,
         containerColor = if (item.isCompleted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceVariant
     ) {
-            // Başlık ve Fiyat Satırı
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    if (item.isPinned) {
-                        Text(
-                            text = "📌 Ana ekranda gösteriliyor",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Text(
-                        text = (if (item.ownSymbol != item.symbol)
-                            "${item.ownSymbol}${String.format(Locale.getDefault(), "%,.2f", item.ownPrice)} ≈ "
-                        else "") +
-                            "$sym${String.format(Locale.getDefault(), "%,.2f", item.price)}" +
-                            (if (item.recurring) " • her ay" else ""),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                IconButton(onClick = onPin) {
-                    Icon(
-                        if (item.isPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = if (item.isPinned) "Ana ekrandan kaldır" else "Ana ekrana sabitle",
-                        tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                    )
-                }
-
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        Icons.Rounded.Delete,
-                        contentDescription = "Sil",
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(item.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                Text(
+                    text = (if (item.ownSymbol != item.symbol)
+                        "${item.ownSymbol}${String.format(Locale.getDefault(), "%,.0f", item.ownPrice)} ≈ "
+                    else "") +
+                        "$sym${String.format(Locale.getDefault(), "%,.0f", item.price)}" +
+                        (if (item.recurring) " · her ay" else ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted
+                )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // CANLI GERİ SAYIM SAYAÇ KUTULARI VEYA HEDEF ULAŞILDI ROZETİ
-            if (item.isCompleted) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "🎉 HEDEFE ULAŞILDI! Gönül rahatlığıyla alabilirsin!",
-                            color = MaterialTheme.colorScheme.onTertiary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = onClaim, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (item.recurring) "Aldım (bu ayki tutar havuzdan düşer)" else "Aldım (tutar havuzdan düşer)")
-                }
-            } else {
-                SectionLabel("⏳ HEDEFE GERİ SAYIM", modifier = Modifier.align(Alignment.CenterHorizontally))
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TimeUnitBox(value = item.daysRemaining, unit = "GÜN", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = item.hoursRemaining, unit = "SAAT", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = item.minutesRemaining, unit = "DK", modifier = Modifier.weight(1f))
-                    Text(":", fontSize = 16.sp, fontWeight = FontWeight.Black)
-                    TimeUnitBox(value = item.secondsRemaining, unit = "SN", modifier = Modifier.weight(1f))
-                }
+            IconButton(onClick = onPin) {
+                Icon(
+                    if (item.isPinned) Icons.Rounded.PushPin else Icons.Outlined.PushPin,
+                    contentDescription = if (item.isPinned) "Ana ekrandan kaldır" else "Ana ekrana sabitle",
+                    tint = if (item.isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                )
             }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Rounded.Delete, contentDescription = "Sil", tint = MaterialTheme.colorScheme.outline)
+            }
+        }
 
-            Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-            // İlerleme Çubuğu
-            val itemProgress by animateFloatAsState(
-                targetValue = item.progressFraction,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
-                label = "itemProgress"
+        val itemProgress by animateFloatAsState(
+            targetValue = item.progressFraction,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+            label = "itemProgress"
+        )
+        LinearProgressIndicator(
+            progress = { itemProgress },
+            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (item.isCompleted) {
+            Text(
+                text = "Hedefe ulaştın, alabilirsin",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
-            LinearProgressIndicator(
-                progress = { itemProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-            )
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Alt Bilgiler
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Button(onClick = onClaim, modifier = Modifier.fillMaxWidth()) {
+                Text("Aldım")
+            }
+        } else {
+            val left = buildString {
+                if (item.daysRemaining > 0) append("${item.daysRemaining} gün ")
+                append("${item.hoursRemaining} sa ${item.minutesRemaining} dk")
+            }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(left, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 Text(
-                    text = if (item.isCompleted) "Tamamı Birikti (%100)"
-                    else "Kalan: $sym${String.format(Locale.getDefault(), "%,.2f", item.remainingMoney)}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = if (item.isCompleted) "Hazır!" else "Hedef: ${item.estimatedReachDate}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    "Kalan $sym${String.format(Locale.getDefault(), "%,.0f", item.remainingMoney)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted
                 )
             }
+        }
     }
 }
 
-@Composable
-fun TimeUnitBox(value: Long, unit: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = String.format(Locale.getDefault(), "%02d", value),
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = unit,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-
-// Kur durumu: son güncelleme zamanı, kaynak ve elle yenileme
+// Kur durumu: tek sessiz satır (sorun varsa renkli)
 @Composable
 fun RateStatusRow(state: YeterUiState, onRefresh: () -> Unit) {
     val usdTry = state.rates["TRY"]
     val ageMin = if (state.rateUpdatedAt > 0) (System.currentTimeMillis() - state.rateUpdatedAt) / 60_000L else -1L
-    val status = when {
-        state.ratesRefreshing -> "Kurlar güncelleniyor..."
-        state.rateUpdatedAt <= 0L -> "Kur henüz çekilemedi, yaklaşık değerler kullanılıyor"
-        state.rateFailed -> "Son deneme başarısız, ${ageMinText(ageMin)} önceki kur kullanılıyor"
-        else -> "Güncel (${ageMinText(ageMin)} önce)"
-    }
     val ok = !state.rateFailed && state.rateUpdatedAt > 0L
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth()
+    val text = when {
+        state.ratesRefreshing -> "Kurlar güncelleniyor..."
+        state.rateUpdatedAt <= 0L -> "Kur çekilemedi, yaklaşık değerler"
+        state.rateFailed -> "Kur güncellenemedi (${ageMinText(ageMin)} önceki)"
+        usdTry != null -> "1 USD = ${String.format(Locale.getDefault(), "%.2f", usdTry)} TRY · ${ageMinText(ageMin)} önce"
+        else -> "Kur güncel"
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Kur" + (if (usdTry != null) ": 1 USD = ${String.format(Locale.getDefault(), "%.2f", usdTry)} TRY" else ""),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = status,
-                    fontSize = 12.sp,
-                    color = if (ok) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
-                )
-            }
-            TextButton(onClick = onRefresh, enabled = !state.ratesRefreshing) {
-                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Yenile", fontSize = 12.sp)
-            }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (ok || state.ratesRefreshing) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = onRefresh, enabled = !state.ratesRefreshing) {
+            Icon(Icons.Rounded.Refresh, contentDescription = "Kurları yenile", tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(20.dp))
         }
     }
 }
