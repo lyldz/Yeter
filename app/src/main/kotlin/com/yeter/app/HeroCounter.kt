@@ -1,7 +1,6 @@
 package com.yeter.app
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,147 +8,194 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import java.text.DecimalFormatSymbols
 import java.util.Locale
-import kotlin.math.floor
+import kotlin.math.roundToLong
 
-// Canlı birikim sayacı: halka ilerleme göstergesi + akıcı artan dev sayı + nabız gibi atan parıltı
+// Canlı birikim sayacı: parlak gradyanlı dev tutar, yumuşak parıltı, ince ilerleme çubuğu, sönük süre satırı.
+// Kuruş değişince tutar kısa bir "yuvarlanma" animasyonuyla yeni değere akar.
 @Composable
 fun HeroCounter(state: YeterUiState) {
-    val primary = MaterialTheme.colorScheme.primary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val track = MaterialTheme.colorScheme.outlineVariant
     val done = state.progressFraction >= 1f
-    val ringColor = if (done) tertiary else primary
+    val locale = Locale.getDefault()
 
-    // Akıcı sayaç: durum her saniye güncellenir, aradaki sürede değeri ekranda 60 ms'de bir ilerlet
-    val baseValue = state.totalSaved
+    // Renk paleti: normalde nane, hedef tamamlanınca altın/lime
+    val topColor = if (done) Color(0xFFFFF0B8) else Color(0xFFE6FFF7)
+    val midColor = if (done) YeterAmber else YeterMint
+    val bottomColor = if (done) YeterLime else Color(0xFF7FE9CF)
+    val accent = if (done) YeterAmber else YeterMint
+
+    // Canlı değer: durum her saniye güncellenir; ara süreyi yalnızca 250 ms'de bir kuruşa çevirerek ilerlet.
+    // derivedStateOf sayesinde kuruş değişmedikçe gövde yeniden çizilmez.
+    val baseCents = state.totalSaved * 100.0
     val baseTime = remember(state.totalSaved) { System.currentTimeMillis() }
-    var nowMs by remember { mutableStateOf(System.currentTimeMillis()) }
+    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
             nowMs = System.currentTimeMillis()
-            delay(60L)
+            delay(250L)
         }
     }
-    val live = baseValue + state.dailySaving * (nowMs - baseTime).coerceIn(0L, 1500L) / 86_400_000.0
+    val dailyCents = state.dailySaving * 100.0
+    val targetCents by remember(baseCents, baseTime, dailyCents) {
+        derivedStateOf {
+            val elapsed = (nowMs - baseTime).coerceIn(0L, 1500L)
+            (baseCents + dailyCents * elapsed / 86_400_000.0).roundToLong().coerceAtLeast(0L)
+        }
+    }
 
-    // Nabız
+    // "Yuvarlanma": önceki gösterilen değerden yeni değere 0..1 ilerleme
+    val roll = remember { Animatable(1f) }
+    var from by remember { mutableLongStateOf(0L) }
+    var to by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(targetCents) {
+        from = (from + ((to - from) * roll.value).roundToLong())
+        to = targetCents
+        roll.snapTo(0f)
+        roll.animateTo(1f, tween(if (kotlin.math.abs(to - from) > 5L) 900 else 350, easing = FastOutSlowInEasing))
+    }
+    val shown = (from + ((to - from) * roll.value.toDouble()).roundToLong()).coerceAtLeast(0L)
+    val intPart = shown / 100
+    val cents = (shown % 100).toInt()
+
+    val sep = DecimalFormatSymbols.getInstance(locale).decimalSeparator
+    val intText = String.format(locale, "%,d", intPart)
+    val centText = String.format(locale, "%02d", cents)
+    val intSize = when {
+        intText.length <= 5 -> 60.sp
+        intText.length <= 7 -> 50.sp
+        else -> 40.sp
+    }
+
+    // Parıltı nabzı: yalnızca çizim aşamasında okunur, yeniden bileşim tetiklemez
     val pulse = rememberInfiniteTransition(label = "pulse")
-    val glow by pulse.animateFloat(
-        initialValue = 0.25f, targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(tween(2200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+    val glow = pulse.animateFloat(
+        initialValue = 0.18f, targetValue = if (done) 0.5f else 0.34f,
+        animationSpec = infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "glow"
     )
     val animProgress by animateFloatAsState(
-        targetValue = state.progressFraction,
+        targetValue = state.progressFraction.coerceIn(0f, 1f),
         animationSpec = tween(900, easing = FastOutSlowInEasing),
         label = "progress"
     )
 
-    val sep = DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator
-    val intPart = floor(live).toLong()
-    val frac = ((live - floor(live)) * 100_000).toLong().coerceIn(0L, 99_999L)
-    val intText = String.format(Locale.getDefault(), "%,d", intPart)
-    val fracText = String.format(Locale.getDefault(), "%05d", frac)
-    val intSize = when {
-        intText.length <= 5 -> 46.sp
-        intText.length <= 7 -> 38.sp
-        else -> 30.sp
-    }
+    val amountBrush = Brush.verticalGradient(listOf(topColor, midColor, bottomColor))
+    val percent = (state.progressFraction * 100).toInt()
+    val a11y = "Birikim: $intText ${state.symbol.trim()}, hedefin yüzde $percent kadarı"
 
     Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(modifier = Modifier.size(260.dp), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val stroke = 12.dp.toPx()
-                val inset = stroke / 2 + 4.dp.toPx()
-                val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        listOf(ringColor.copy(alpha = glow * 0.25f), Color.Transparent),
-                        center = center, radius = size.minDimension / 2
-                    ),
-                    radius = size.minDimension / 2
-                )
-                drawArc(
-                    color = track, startAngle = -90f, sweepAngle = 360f, useCenter = false,
-                    topLeft = Offset(inset, inset), size = arcSize,
-                    style = Stroke(width = stroke, cap = StrokeCap.Round)
-                )
-                if (animProgress > 0f) {
-                    drawArc(
-                        brush = Brush.sweepGradient(
-                            listOf(ringColor.copy(alpha = 0.55f), ringColor, ringColor),
-                            center = center
+        // Tutar bloğu: ekran okuyucuya sabit, tamsayı tabanlı tek açıklama
+        Column(
+            modifier = Modifier
+                .clearAndSetSemantics { contentDescription = a11y }
+                .drawBehind {
+                    val r = size.width.coerceAtLeast(size.height) * 0.62f
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            listOf(accent.copy(alpha = glow.value * 0.45f), Color.Transparent),
+                            center = Offset(size.width / 2, size.height / 2), radius = r
                         ),
-                        startAngle = -90f, sweepAngle = 360f * animProgress, useCenter = false,
-                        topLeft = Offset(inset, inset), size = arcSize,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
+                        radius = r,
+                        center = Offset(size.width / 2, size.height / 2)
                     )
                 }
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = state.symbol.trim(),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp, end = 4.dp)
-                    )
-                    Text(
-                        text = intText,
-                        style = TabularNums,
-                        fontSize = intSize,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1, softWrap = false
-                    )
-                    Text(
-                        text = "$sep$fracText",
-                        style = TabularNums,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ringColor,
-                        maxLines = 1, softWrap = false,
-                        modifier = Modifier.padding(bottom = 6.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
                 Text(
-                    text = "%${(state.progressFraction * 100).toInt()}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ringColor
+                    text = state.symbol.trim(),
+                    fontSize = (intSize.value * 0.45f).sp,
+                    fontWeight = FontWeight.Bold,
+                    color = accent.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(top = 6.dp, end = 4.dp)
+                )
+                Text(
+                    text = intText,
+                    style = TabularNums.copy(
+                        brush = amountBrush,
+                        shadow = Shadow(accent.copy(alpha = 0.45f), Offset.Zero, 28f)
+                    ),
+                    fontSize = intSize,
+                    fontWeight = FontWeight.Black,
+                    maxLines = 1, softWrap = false
+                )
+                Text(
+                    text = "$sep$centText",
+                    style = TabularNums.copy(brush = amountBrush),
+                    fontSize = (intSize.value * 0.45f).sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1, softWrap = false,
+                    modifier = Modifier.padding(top = 6.dp, start = 2.dp)
                 )
             }
         }
+
         Spacer(modifier = Modifier.height(8.dp))
+
+        // İnce ilerleme çubuğu + yüzde
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(180.dp).height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                if (animProgress > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(animProgress)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    if (done) listOf(YeterAmber, YeterLime)
+                                    else listOf(YeterMint.copy(alpha = 0.7f), YeterMint, Color(0xFFB8FFEC))
+                                )
+                            )
+                    )
+                }
+            }
+            Text(
+                text = "%$percent",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = accent
+            )
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = elapsedText(state),
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
     }
 }
 
-// "12 gün 4 sa harcamadan" gibi tek satırlık geçen süre
+// Sönük tek satır: "12 gün 4 sa harcamadan" (saniye yok)
 private fun elapsedText(s: YeterUiState): String = when {
     s.elapsedDays > 0 -> "${s.elapsedDays} gün ${s.elapsedHours} sa harcamadan"
     s.elapsedHours > 0 -> "${s.elapsedHours} sa ${s.elapsedMinutes} dk harcamadan"
-    else -> "${s.elapsedMinutes} dk ${s.elapsedSeconds} sn harcamadan"
+    else -> "${s.elapsedMinutes} dk harcamadan"
 }

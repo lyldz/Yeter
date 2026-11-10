@@ -26,6 +26,13 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Read version info
+        id: ver
+        run: |
+          . <(grep -E '^(VERSION_NAME|VERSION_CODE|SERIES_NAME)=' version.properties)
+          echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "series=$SERIES_NAME" >> "$GITHUB_OUTPUT"
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
@@ -57,18 +64,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.3
-          name: "Yeter! v1.1.3 - Sade arayüz (APK)"
-          body: |
-            ### Yeter! v1.1.3 - Sade arayüz
-
-            - **Ana ekran sadeleşti:** Halkalı canlı sayaç, tek hedef kartı, üç sade sayı (bugün / direnilen / kurtarılan) ve DUR butonu. Gün:saat:dk:sn kutuları tek satırlık süreye dönüştü.
-            - **Üst çubuk:** Alt başlık ve sürüm rozeti kalktı; Düzenle, Sıfırla ve sürüm bilgisi menüye taşındı.
-            - **Dönüm noktaları** varsayılan olarak kapalı, istenince açılır.
-            - Veriler korunur; v1.1.2 üzerine doğrudan kurulur.
-
-            #### İndirme:
-            Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını indirip kurabilirsiniz.
+          tag_name: v${{ steps.ver.outputs.name }}
+          name: "Yeter! v${{ steps.ver.outputs.name }} · ${{ steps.ver.outputs.series }} (APK)"
+          body_path: .github/release-notes.md
           files: Yeter.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

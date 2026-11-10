@@ -1,6 +1,13 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application") version "8.3.0"
     kotlin("android") version "1.9.23"
+}
+
+// Sürüm bilgisi tek yerde: ../version.properties
+val versionProps = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
 }
 
 android {
@@ -11,8 +18,9 @@ android {
         applicationId = "com.yeter.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 11
-        versionName = "1.1.3"
+        versionCode = versionProps.getProperty("VERSION_CODE").toInt()
+        versionName = versionProps.getProperty("VERSION_NAME")
+        buildConfigField("String", "SERIES_NAME", "\"${versionProps.getProperty("SERIES_NAME")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -49,6 +57,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 

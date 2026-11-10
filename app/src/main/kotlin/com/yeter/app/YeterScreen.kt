@@ -119,7 +119,7 @@ fun YeterScreen(
                                 onClick = { menuOpen = false; onOpenReset() }
                             )
                             DropdownMenuItem(
-                                text = { Text("Sürüm ${state.currentAppVersion}", color = MaterialTheme.colorScheme.outline) },
+                                text = { Text("Sürüm ${state.currentAppVersion} · ${BuildConfig.SERIES_NAME}", color = MaterialTheme.colorScheme.outline) },
                                 enabled = false,
                                 onClick = {}
                             )

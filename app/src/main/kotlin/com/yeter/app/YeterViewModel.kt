@@ -64,7 +64,7 @@ data class Badge(val emoji: String, val title: String, val desc: String, val unl
 data class DayCell(val dayStart: Long, val resisted: Int, val slipped: Int, val isToday: Boolean)
 
 data class YeterUiState(
-    val currentAppVersion: String = "v1.1.3",
+    val currentAppVersion: String = "v" + BuildConfig.VERSION_NAME,
     val selectedTab: Int = 0, // 0: Sayaç, 1: Vitrin, 2: Geçmiş
     val onboarded: Boolean = true,
 
