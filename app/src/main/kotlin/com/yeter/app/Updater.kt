@@ -1,10 +1,12 @@
 package com.yeter.app
 
+import android.content.Context
 import org.json.JSONObject
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class UpdateInfo(val version: String, val downloadUrl: String)
+data class UpdateInfo(val version: String, val downloadUrl: String, val notes: String, val sizeBytes: Long)
 
 // GitHub Releases üzerinden güncelleme denetimi (uygulama açıkken ve arka plan işinde ortak)
 object Updater {
@@ -39,17 +41,64 @@ object Updater {
             val tag = json.optString("tag_name", "")
             if (tag.isEmpty()) return null
             var url = json.optString("html_url", "https://github.com/$REPO/releases")
+            var size = 0L
             val assets = json.optJSONArray("assets")
             if (assets != null) {
                 for (i in 0 until assets.length()) {
                     val a = assets.getJSONObject(i)
                     if (a.optString("name").endsWith(".apk")) {
                         url = a.optString("browser_download_url", url)
+                        size = a.optLong("size", 0L)
                         break
                     }
                 }
             }
-            UpdateInfo(tag, url)
+            UpdateInfo(tag, url, cleanNotes(json.optString("body", "")), size)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    // Release gövdesinden yalnızca madde satırlarını al: "- **Başlık:** metin" -> "• Başlık: metin"
+    fun cleanNotes(body: String): String =
+        body.lines()
+            .map { it.trim() }
+            .filter { it.startsWith("- ") || it.startsWith("* ") }
+            .joinToString("\n") { "• " + it.drop(2).replace("**", "").replace("`", "") }
+
+    // Bloklayıcı; IO iş parçacığında çağır. İlerleme 0..1 (boyut bilinmiyorsa -1). Başarısızlıkta null.
+    fun download(context: Context, url: String, onProgress: (Float) -> Unit): File? {
+        return try {
+            val dir = File(context.cacheDir, "updates").apply { mkdirs() }
+            dir.listFiles()?.forEach { it.delete() }
+            val out = File(dir, "Yeter.apk")
+            val conn = URL(url).openConnection() as HttpURLConnection
+            conn.connectTimeout = 15000
+            conn.readTimeout = 30000
+            conn.setRequestProperty("User-Agent", "YeterApp")
+            if (conn.responseCode != 200) { conn.disconnect(); return null }
+            val total = conn.contentLengthLong
+            var done = 0L
+            var lastReport = 0L
+            conn.inputStream.use { input ->
+                out.outputStream().use { output ->
+                    val buf = ByteArray(32 * 1024)
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        output.write(buf, 0, n)
+                        done += n
+                        val now = System.currentTimeMillis()
+                        if (now - lastReport > 150) {
+                            lastReport = now
+                            onProgress(if (total > 0) done.toFloat() / total else -1f)
+                        }
+                    }
+                }
+            }
+            conn.disconnect()
+            if (total > 0 && done != total) { out.delete(); return null }
+            out
         } catch (e: Exception) {
             null
         }

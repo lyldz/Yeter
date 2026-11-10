@@ -25,6 +25,12 @@ class MainActivity : ComponentActivity() {
                             viewModel.completeOnboarding(home, daily, name, price, cur, rec)
                         }
                     )
+                } else if (state.showUpdateDialog) {
+                    UpdateScreen(
+                        state = state,
+                        onUpdate = { viewModel.startUpdateDownload() },
+                        onLater = { viewModel.closeUpdateDialog() }
+                    )
                 } else YeterScreen(
                     state = state,
                     onSelectTab = { viewModel.selectTab(it) },
@@ -48,19 +54,10 @@ class MainActivity : ComponentActivity() {
                     },
                     onConfirmDaily = { viewModel.confirmDailyAmount(it) },
                     onRefreshRates = { viewModel.refreshRatesNow() },
+                    onSelectCounter = { viewModel.setCounterStyle(it) },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
                     onConfirmReset = { viewModel.resetStreak() },
-                    onCloseUpdate = { viewModel.closeUpdateDialog() },
-                    onDownloadUpdate = { url ->
-                        viewModel.closeUpdateDialog()
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            // Intent açılamazsa fallback
-                        }
-                    },
                     onOpenAddWishlist = { viewModel.openAddWishlistDialog(it) },
                     onAddWishlist = { name, price, cur, rec -> viewModel.addWishlistItem(name, price, cur, rec) },
                     onDeleteWishlist = { id -> viewModel.deleteWishlistItem(id) }

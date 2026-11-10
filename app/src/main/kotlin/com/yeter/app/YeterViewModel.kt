@@ -137,6 +137,12 @@ data class YeterUiState(
     val updateVersion: String = "",
     val updateDownloadUrl: String = "",
     val showUpdateDialog: Boolean = false,
+    val counterStyle: Int = 4,
+    val updateNotes: String = "",
+    val updateSizeBytes: Long = 0L,
+    val updateDownloading: Boolean = false,
+    val updateProgress: Float = -1f,
+    val updateMessage: String = "",
 
     // Dönüm Noktaları
     val milestones: List<Milestone> = listOf(
@@ -174,6 +180,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         return YeterUiState(
             currentAppVersion = currentVersionName(),
             onboarded = prefs.getBoolean("onboarded", prefs.contains("claude_seeded")),
+            counterStyle = prefs.getInt("counter_style", 4),
             homeCurrency = home,
             symbol = currencySymbol(home),
             rates = Rates.load(prefs),
@@ -482,6 +489,8 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                                 hasUpdate = true,
                                 updateVersion = info.version,
                                 updateDownloadUrl = info.downloadUrl,
+                                updateNotes = info.notes,
+                                updateSizeBytes = info.sizeBytes,
                                 showUpdateDialog = true
                             )
                         }
@@ -492,10 +501,57 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // "Sonra" ya da "Güncelle" sonrası: 24 saat boyunca tekrar sorma
+    // Sayaç stili: 0 klasik, 1 kumbara, 2 para yığını, 3 kart, 4 kasa
+    fun setCounterStyle(style: Int) {
+        prefs.edit().putInt("counter_style", style).apply()
+        _uiState.update { it.copy(counterStyle = style) }
+    }
+
+    // "Sonra": 24 saat boyunca tekrar sorma
     fun closeUpdateDialog() {
+        if (_uiState.value.updateDownloading) return
         prefs.edit().putLong("update_snooze_until", System.currentTimeMillis() + Updater.SNOOZE_MS).apply()
-        _uiState.update { it.copy(showUpdateDialog = false) }
+        _uiState.update { it.copy(showUpdateDialog = false, updateMessage = "") }
+    }
+
+    // Uygulama içinden indir ve kurulum ekranını aç
+    fun startUpdateDownload() {
+        val st = _uiState.value
+        if (st.updateDownloading || st.updateDownloadUrl.isBlank()) return
+        val app = getApplication<Application>()
+        if (!app.packageManager.canRequestPackageInstalls()) {
+            _uiState.update { it.copy(updateMessage = "Önce açılan ayarda Yeter için \"Bu kaynaktan izin ver\" seçeneğini aç, sonra geri dönüp Güncelle'ye bas.") }
+            try {
+                app.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        android.net.Uri.parse("package:" + app.packageName)
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (e: Exception) { }
+            return
+        }
+        _uiState.update { it.copy(updateDownloading = true, updateProgress = 0f, updateMessage = "") }
+        viewModelScope.launch(Dispatchers.IO) {
+            val file = Updater.download(app, st.updateDownloadUrl) { p ->
+                _uiState.update { it.copy(updateProgress = p) }
+            }
+            if (file == null) {
+                _uiState.update { it.copy(updateDownloading = false, updateProgress = -1f, updateMessage = "İndirme başarısız oldu. İnternetini kontrol edip tekrar dene.") }
+                return@launch
+            }
+            _uiState.update { it.copy(updateDownloading = false, updateProgress = 1f, updateMessage = "İndirildi. Kurulum ekranı açılıyor...") }
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(app, app.packageName + ".fileprovider", file)
+                app.startActivity(
+                    android.content.Intent(android.content.Intent.ACTION_VIEW)
+                        .setDataAndType(uri, "application/vnd.android.package-archive")
+                        .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (e: Exception) {
+                _uiState.update { it.copy(updateMessage = "Kurulum ekranı açılamadı.") }
+            }
+        }
     }
 
     private fun currentVersionName(): String = try {

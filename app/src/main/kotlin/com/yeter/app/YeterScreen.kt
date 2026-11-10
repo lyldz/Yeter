@@ -71,11 +71,10 @@ fun YeterScreen(
     onExport: () -> Unit,
     onConfirmDaily: (amount: Double) -> Unit,
     onRefreshRates: () -> Unit,
+    onSelectCounter: (Int) -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
-    onCloseUpdate: () -> Unit,
-    onDownloadUpdate: (url: String) -> Unit,
     onOpenAddWishlist: (Boolean) -> Unit,
     onAddWishlist: (name: String, price: Double, currency: String, recurring: Boolean) -> Unit,
     onDeleteWishlist: (id: String) -> Unit
@@ -113,6 +112,12 @@ fun YeterScreen(
                                 leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
                                 onClick = { menuOpen = false; onOpenEdit() }
                             )
+                            listOf("Klasik", "Kumbara", "Para yığını", "Kart", "Kasa").forEachIndexed { i, name ->
+                                DropdownMenuItem(
+                                    text = { Text("Sayaç: $name" + if (state.counterStyle == i) "  ✓" else "") },
+                                    onClick = { menuOpen = false; onSelectCounter(i) }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Sıfırla") },
                                 leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
@@ -192,45 +197,6 @@ fun YeterScreen(
                 )
             }
         }
-    }
-
-    // DIALOG 1: GÜNCELLEME BİLDİRİMİ ("ARTIK YETER!")
-    if (state.showUpdateDialog) {
-        AlertDialog(
-            onDismissRequest = onCloseUpdate,
-            icon = { Icon(Icons.Rounded.NewReleases, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = {
-                Text(
-                    text = "Artık Yeter!",
-                    fontWeight = FontWeight.Black,
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "🎉 Yeni Sürüm Bulundu!",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Yeter uygulamasının yeni sürümü (${state.updateVersion}) hazır. Daha stabil ve güncel deneyim için güncelleyebilirsiniz.",
-                        fontSize = 14.sp
-                    )
-                }
-            },
-            confirmButton = {
-                Button(onClick = { onDownloadUpdate(state.updateDownloadUrl) }) {
-                    Text("Güncelle")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onCloseUpdate) {
-                    Text("Sonra (24 saat)")
-                }
-            }
-        )
     }
 
     // DIALOG 2: Alışveriş Dürtüsü (form -> bekleme -> karar)
@@ -537,7 +503,15 @@ fun SayacTabContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.lg)
     ) {
         // Canlı birikim (halka + sayı + tek satır süre)
-        item { HeroCounter(state = state) }
+        item {
+            when (state.counterStyle) {
+                1 -> CounterA(state = state)
+                2 -> CounterB(state = state)
+                3 -> CounterC(state = state)
+                4 -> CounterD(state = state)
+                else -> HeroCounter(state = state)
+            }
+        }
 
         // Motivasyon: kart değil, sessiz tek satır
         item {
