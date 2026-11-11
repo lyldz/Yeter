@@ -20,7 +20,9 @@ class MainActivity : ComponentActivity() {
             YeterTheme {
                 val state by viewModel.uiState.collectAsState()
 
-                if (!state.onboarded) {
+                if (state.showGuide) {
+                    GuideScreen(onDone = { viewModel.finishGuide() })
+                } else if (!state.onboarded) {
                     OnboardingScreen(
                         onFinish = { home, daily, name, price, cur, rec ->
                             viewModel.completeOnboarding(home, daily, name, price, cur, rec)
@@ -57,6 +59,9 @@ class MainActivity : ComponentActivity() {
                     onRefreshRates = { viewModel.refreshRatesNow() },
                     onSelectCounter = { viewModel.setCounterStyle(it) },
                     onCheckUpdate = { viewModel.checkUpdateNow() },
+                    onShowNotes = { viewModel.showReleaseNotes() },
+                    onShowGuide = { viewModel.openGuide() },
+                    onCloseNotes = { viewModel.closeReleaseNotes() },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
                     onConfirmReset = { viewModel.resetStreak() },

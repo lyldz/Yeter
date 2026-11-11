@@ -1,9 +1,5 @@
 package com.yeter.app
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,14 +59,13 @@ fun CurrencyPicker(selected: String, onSelect: (String) -> Unit) {
 fun OnboardingScreen(
     onFinish: (homeCurrency: String, daily: Double, goalName: String, goalPrice: Double, goalCurrency: String, recurring: Boolean) -> Unit
 ) {
-    var step by remember { mutableStateOf(0) }
+    var step by remember { mutableStateOf(1) } // 0 (tanıtım) artık GuideScreen'de
     var home by remember { mutableStateOf("TRY") }
     var dailyText by remember { mutableStateOf("30") }
     var goalName by remember { mutableStateOf("Claude Pro (aylık)") }
     var goalPriceText by remember { mutableStateOf("20") }
     var goalCur by remember { mutableStateOf("USD") }
     var goalRecurring by remember { mutableStateOf(true) }
-    var permissionAsked by remember { mutableStateOf(false) }
 
     fun finish() {
         onFinish(
@@ -81,13 +76,6 @@ fun OnboardingScreen(
             goalCur,
             goalRecurring
         )
-    }
-
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        permissionAsked = true
-    }
-    LaunchedEffect(permissionAsked) {
-        if (permissionAsked) finish()
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -163,7 +151,7 @@ fun OnboardingScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        "Hazır gelen örnek Claude Pro (aylık \$20). Değiştirebilir ya da boş bırakıp sonra Vitrin'den ekleyebilirsin. Günlük hatırlatmalar için bildirim izni istenecek.",
+                        "Hazır gelen örnek Claude Pro (aylık \$20). Değiştirebilir ya da boş bırakıp sonra Vitrin'den ekleyebilirsin.",
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -171,14 +159,12 @@ fun OnboardingScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (step > 0) {
+                if (step > 1) {
                     OutlinedButton(onClick = { step -= 1 }, modifier = Modifier.weight(1f).height(50.dp)) { Text("Geri") }
                 }
                 Button(
                     onClick = {
-                        if (step < 2) step += 1
-                        else if (Build.VERSION.SDK_INT >= 33) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        else finish()
+                        if (step < 2) step += 1 else finish()
                     },
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {

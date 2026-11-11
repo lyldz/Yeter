@@ -3,7 +3,8 @@ package com.yeter.app
 import androidx.compose.animation.core.*
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -73,6 +74,9 @@ fun YeterScreen(
     onRefreshRates: () -> Unit,
     onSelectCounter: (Int) -> Unit,
     onCheckUpdate: () -> Unit,
+    onShowNotes: () -> Unit,
+    onShowGuide: () -> Unit,
+    onCloseNotes: () -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
@@ -102,43 +106,60 @@ fun YeterScreen(
                     }
                 },
                 actions = {
-                    if (state.selectedTab == 0) {
-                        var menuOpen by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Rounded.MoreVert, contentDescription = "Menü")
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Hedefi düzenle") },
-                                leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
-                                onClick = { menuOpen = false; onOpenEdit() }
-                            )
-                            listOf("Klasik", "Kumbara", "Para yığını", "Kart", "Kasa").forEachIndexed { i, name ->
-                                DropdownMenuItem(
-                                    text = { Text("Sayaç: $name" + if (state.counterStyle == i) "  ✓" else "") },
-                                    onClick = { menuOpen = false; onSelectCounter(i) }
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Güncellemeyi denetle") },
-                                leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
-                                onClick = { menuOpen = false; onCheckUpdate() }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Sıfırla") },
-                                leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
-                                onClick = { menuOpen = false; onOpenReset() }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Sürüm ${state.currentAppVersion} · ${BuildConfig.SERIES_NAME}", color = MaterialTheme.colorScheme.outline) },
-                                enabled = false,
-                                onClick = {}
-                            )
-                        }
-                    } else if (state.selectedTab == 1) {
+                    if (state.selectedTab == 1) {
                         IconButton(onClick = { onOpenAddWishlist(true) }) {
                             Icon(Icons.Rounded.Add, contentDescription = "Ürün Ekle")
                         }
+                    }
+                    // (i): sürüm, güncelleme, sürüm notları, sıfırla
+                    var infoOpen by remember { mutableStateOf(false) }
+                    IconButton(onClick = { infoOpen = true }) {
+                        Icon(Icons.Rounded.Info, contentDescription = "Bilgi")
+                    }
+                    DropdownMenu(expanded = infoOpen, onDismissRequest = { infoOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Sürüm ${state.currentAppVersion} · ${BuildConfig.SERIES_NAME}", color = MaterialTheme.colorScheme.outline) },
+                            enabled = false,
+                            onClick = {}
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Güncellemeyi denetle") },
+                            leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
+                            onClick = { infoOpen = false; onCheckUpdate() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sürüm notları") },
+                            leadingIcon = { Icon(Icons.Rounded.NewReleases, contentDescription = null) },
+                            onClick = { infoOpen = false; onShowNotes() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Sıfırla") },
+                            leadingIcon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+                            onClick = { infoOpen = false; onOpenReset() }
+                        )
+                    }
+                    // Dişli: ayarlar, sayaç görünümü, rehber
+                    var menuOpen by remember { mutableStateOf(false) }
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Ayarlar")
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Ayarlar") },
+                            leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
+                            onClick = { menuOpen = false; onOpenEdit() }
+                        )
+                        listOf("Klasik", "Kumbara", "Para yığını", "Kart", "Kasa").forEachIndexed { i, name ->
+                            DropdownMenuItem(
+                                text = { Text("Sayaç: $name" + if (state.counterStyle == i) "  ✓" else "") },
+                                onClick = { menuOpen = false; onSelectCounter(i) }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Rehberi göster") },
+                            leadingIcon = { Icon(Icons.Rounded.Lightbulb, contentDescription = null) },
+                            onClick = { menuOpen = false; onShowGuide() }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -311,6 +332,15 @@ fun YeterScreen(
                 }
             )
         }
+    }
+
+    if (state.releaseNotes != null) {
+        AlertDialog(
+            onDismissRequest = onCloseNotes,
+            title = { Text(state.releaseNotesTitle, fontWeight = FontWeight.Bold) },
+            text = { Text(state.releaseNotes.ifBlank { "Bu sürüm için not bulunamadı." }, modifier = Modifier.verticalScroll(rememberScrollState())) },
+            confirmButton = { TextButton(onClick = onCloseNotes) { Text("Kapat") } }
+        )
     }
 
     // DIALOG 3: Ayarlar

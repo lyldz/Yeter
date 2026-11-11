@@ -132,6 +132,9 @@ data class YeterUiState(
     // Dialog Kontrolleri
     val showUrgeDialog: Boolean = false,
     val showEditDialog: Boolean = false,
+    val showGuide: Boolean = false,
+    val releaseNotes: String? = null, // null: kapalı
+    val releaseNotesTitle: String = "",
     val showResetConfirmDialog: Boolean = false,
 
     // Güncelleme Kontrolü
@@ -189,6 +192,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             currentAppVersion = currentVersionName(),
             onboarded = prefs.getBoolean("onboarded", prefs.contains("claude_seeded")),
             counterStyle = prefs.getInt("counter_style", 4),
+            showGuide = !prefs.getBoolean("guide_seen", false),
             homeCurrency = home,
             symbol = currencySymbol(home),
             rates = Rates.load(prefs),
@@ -549,6 +553,27 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             launch(Dispatchers.Main) { android.widget.Toast.makeText(app, msg, android.widget.Toast.LENGTH_SHORT).show() }
         }
     }
+
+    // Rehber: ilk açılışta bir kez, sonra menüden
+    fun finishGuide() {
+        prefs.edit().putBoolean("guide_seen", true).apply()
+        _uiState.update { it.copy(showGuide = false) }
+    }
+    fun openGuide() { _uiState.update { it.copy(showGuide = true) } }
+
+    // (i) → Sürüm notları: en son yayındaki notlar (uygulama güncelse kendi sürümünün notları)
+    fun showReleaseNotes() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val info = Updater.fetchLatest()
+            _uiState.update {
+                it.copy(
+                    releaseNotesTitle = info?.version?.let { v -> "Sürüm notları · $v" } ?: "Sürüm notları",
+                    releaseNotes = info?.notes ?: "Notlar alınamadı, internetini kontrol et."
+                )
+            }
+        }
+    }
+    fun closeReleaseNotes() { _uiState.update { it.copy(releaseNotes = null) } }
 
     // Sayaç stili: 0 klasik, 1 kumbara, 2 para yığını, 3 kart, 4 kasa
     fun setCounterStyle(style: Int) {
