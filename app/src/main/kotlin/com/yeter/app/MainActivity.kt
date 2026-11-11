@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
                     onConfirmDaily = { viewModel.confirmDailyAmount(it) },
                     onRefreshRates = { viewModel.refreshRatesNow() },
                     onSelectCounter = { viewModel.setCounterStyle(it) },
+                    onCheckUpdate = { viewModel.checkUpdateNow() },
                     onOpenReset = { viewModel.openResetDialog(true) },
                     onCloseReset = { viewModel.openResetDialog(false) },
                     onConfirmReset = { viewModel.resetStreak() },

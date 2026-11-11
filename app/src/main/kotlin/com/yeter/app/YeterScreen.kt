@@ -72,6 +72,7 @@ fun YeterScreen(
     onConfirmDaily: (amount: Double) -> Unit,
     onRefreshRates: () -> Unit,
     onSelectCounter: (Int) -> Unit,
+    onCheckUpdate: () -> Unit,
     onOpenReset: () -> Unit,
     onCloseReset: () -> Unit,
     onConfirmReset: () -> Unit,
@@ -118,6 +119,11 @@ fun YeterScreen(
                                     onClick = { menuOpen = false; onSelectCounter(i) }
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("Güncellemeyi denetle") },
+                                leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },
+                                onClick = { menuOpen = false; onCheckUpdate() }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Sıfırla") },
                                 leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null) },

@@ -511,24 +511,43 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // false: sunucuya ulaşılamadı
-    private fun checkForUpdate(): Boolean {
+    // false: sunucuya ulaşılamadı. force: "Sonra" ertelemesini yok sayar (elle denetim).
+    private fun checkForUpdate(force: Boolean = false): Boolean {
         lastUpdateCheck = System.currentTimeMillis()
-        if (lastUpdateCheck < prefs.getLong("update_snooze_until", 0L) || _uiState.value.showUpdateDialog || _uiState.value.updateDownloading) return true
+        if (_uiState.value.showUpdateDialog || _uiState.value.updateDownloading) return true
         val info = Updater.fetchLatest() ?: return false
         if (Updater.isNewer(info.version, _uiState.value.currentAppVersion)) {
-            _uiState.update {
-                it.copy(
-                    hasUpdate = true,
-                    updateVersion = info.version,
-                    updateDownloadUrl = info.downloadUrl,
-                    updateNotes = info.notes,
-                    updateSizeBytes = info.sizeBytes,
-                    showUpdateDialog = true
-                )
+            // Erteleme yalnızca ertelenen sürüm için geçerli; daha yeni sürüm hemen sorulur
+            val snoozed = info.version == prefs.getString("update_snooze_ver", "") &&
+                lastUpdateCheck < prefs.getLong("update_snooze_until", 0L)
+            if (force || !snoozed) {
+                _uiState.update {
+                    it.copy(
+                        hasUpdate = true,
+                        updateVersion = info.version,
+                        updateDownloadUrl = info.downloadUrl,
+                        updateNotes = info.notes,
+                        updateSizeBytes = info.sizeBytes,
+                        showUpdateDialog = true
+                    )
+                }
             }
         }
         return true
+    }
+
+    // ⋮ menüsü: elle denetle, sonucu kısa mesajla bildir
+    fun checkUpdateNow() {
+        val app = getApplication<Application>()
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = checkForUpdate(force = true)
+            val msg = when {
+                !ok -> "Sunucuya ulaşılamadı, internetini kontrol et."
+                _uiState.value.showUpdateDialog -> return@launch
+                else -> "Uygulama güncel (${_uiState.value.currentAppVersion})."
+            }
+            launch(Dispatchers.Main) { android.widget.Toast.makeText(app, msg, android.widget.Toast.LENGTH_SHORT).show() }
+        }
     }
 
     // Sayaç stili: 0 klasik, 1 kumbara, 2 para yığını, 3 kart, 4 kasa
@@ -540,7 +559,9 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     // "Sonra": 24 saat boyunca tekrar sorma
     fun closeUpdateDialog() {
         if (_uiState.value.updateDownloading) return
-        prefs.edit().putLong("update_snooze_until", System.currentTimeMillis() + Updater.SNOOZE_MS).apply()
+        prefs.edit()
+            .putString("update_snooze_ver", _uiState.value.updateVersion)
+            .putLong("update_snooze_until", System.currentTimeMillis() + Updater.SNOOZE_MS).apply()
         _uiState.update { it.copy(showUpdateDialog = false, updateMessage = "") }
     }
 
