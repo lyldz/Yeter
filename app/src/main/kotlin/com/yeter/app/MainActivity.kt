@@ -15,6 +15,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleWidgetIntent(intent)
         setContent {
             YeterTheme {
                 val state by viewModel.uiState.collectAsState()
@@ -63,6 +64,19 @@ class MainActivity : ComponentActivity() {
                     onDeleteWishlist = { id -> viewModel.deleteWishlistItem(id) }
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleWidgetIntent(intent)
+    }
+
+    // Widget'taki DUR düğmesi: uygulamayı açar ve dürtü akışını başlatır
+    private fun handleWidgetIntent(i: Intent?) {
+        if (i?.getBooleanExtra(EXTRA_OPEN_URGE, false) == true) {
+            i.removeExtra(EXTRA_OPEN_URGE)
+            viewModel.openUrgeDialog(true)
         }
     }
 }

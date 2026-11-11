@@ -22,6 +22,102 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name=".SavingsWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Birikim">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_savings_info" />
+        </receiver>
+
+        <receiver
+            android:name=".GoalWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Hedef">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_goal_info" />
+        </receiver>
+
+        <receiver
+            android:name=".TodayWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Bugün">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <receiver
+            android:name=".UrgeWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · DUR">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_urge_info" />
+        </receiver>
+
+        <receiver
+            android:name=".DaysLeftWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Kalan gün">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_daysleft_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ResistWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Direnç">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_resist_info" />
+        </receiver>
+
+        <receiver
+            android:name=".ShowcaseWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Vitrin">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_showcase_info" />
+        </receiver>
+
+        <receiver
+            android:name=".VaultWidgetReceiver"
+            android:exported="true"
+            android:label="Yeter · Kasa">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_vault_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

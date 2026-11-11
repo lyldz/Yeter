@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_goal_desc">Birikimini, hedefinin ilerlemesini ve kalan günü gösterir.</string>
+    <string name="widget_today_desc">Bugün biriken tutarı ve günlük hedefini gösterir.</string>
+    <string name="widget_urge_desc">Dokununca DUR akışını doğrudan açar.</string>
+    <string name="widget_daysleft_desc">Hedefine kaç gün kaldığını gösterir.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_resist_desc">Dürtülere kaç kez dur dediğini ve kurtardığın tutarı gösterir.</string>
+    <string name="widget_showcase_desc">İlk üç hedefini ve ilerlemelerini gösterir.</string>
+    <string name="widget_vault_desc">Birikimini altın para görünümüyle kasada gösterir.</string>
+</resources>

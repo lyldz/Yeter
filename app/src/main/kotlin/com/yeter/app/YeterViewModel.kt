@@ -9,6 +9,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -168,6 +170,12 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         startLiveTimer()
         startRateRefresh()
         startUpdateLoop()
+        // Widget'lar: dürtü, hedef, harcama, günlük tutar, para birimi değişince yenilenir
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.map { listOf(it.resistedCount, it.slipCount, it.spentTotal, it.wishlist.size, it.dailySaving, it.pinnedGoalId, it.homeCurrency, it.onboarded) }
+                .distinctUntilChanged()
+                .collect { updateAllYeterWidgets(getApplication()) }
+        }
     }
 
     private fun loadInitialState(): YeterUiState {
