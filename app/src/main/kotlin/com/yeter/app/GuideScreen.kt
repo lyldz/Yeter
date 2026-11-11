@@ -117,8 +117,8 @@ private val pages = listOf(
         listOf(
             "Sağ üstteki dişli çark menüsünü aç.",
             "Günlük tutarı ve para birimini değiştir.",
-            "Sayaç görünümünü seç, güncellemeyi denetle.",
-            "Sıfırlayabilir veya bu rehberi tekrar gösterebilirsin."
+            "Bu rehberi tekrar gösterebilirsin.",
+            "Yanındaki (i): güncellemeyi denetle, sürüm notları, sıfırla."
         )
     ),
     GuidePage(

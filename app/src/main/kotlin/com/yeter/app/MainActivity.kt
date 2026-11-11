@@ -57,7 +57,6 @@ class MainActivity : ComponentActivity() {
                     },
                     onConfirmDaily = { viewModel.confirmDailyAmount(it) },
                     onRefreshRates = { viewModel.refreshRatesNow() },
-                    onSelectCounter = { viewModel.setCounterStyle(it) },
                     onCheckUpdate = { viewModel.checkUpdateNow() },
                     onShowNotes = { viewModel.showReleaseNotes() },
                     onShowGuide = { viewModel.openGuide() },

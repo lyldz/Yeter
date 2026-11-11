@@ -142,7 +142,6 @@ data class YeterUiState(
     val updateVersion: String = "",
     val updateDownloadUrl: String = "",
     val showUpdateDialog: Boolean = false,
-    val counterStyle: Int = 4,
     val updateNotes: String = "",
     val updateSizeBytes: Long = 0L,
     val updateDownloading: Boolean = false,
@@ -191,7 +190,6 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         return YeterUiState(
             currentAppVersion = currentVersionName(),
             onboarded = prefs.getBoolean("onboarded", prefs.contains("claude_seeded")),
-            counterStyle = prefs.getInt("counter_style", 4),
             showGuide = !prefs.getBoolean("guide_seen", false),
             homeCurrency = home,
             symbol = currencySymbol(home),
@@ -574,12 +572,6 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     fun closeReleaseNotes() { _uiState.update { it.copy(releaseNotes = null) } }
-
-    // Sayaç stili: 0 klasik, 1 kumbara, 2 para yığını, 3 kart, 4 kasa
-    fun setCounterStyle(style: Int) {
-        prefs.edit().putInt("counter_style", style).apply()
-        _uiState.update { it.copy(counterStyle = style) }
-    }
 
     // "Sonra": 24 saat boyunca tekrar sorma
     fun closeUpdateDialog() {

@@ -74,7 +74,6 @@ fun YeterScreen(
     onExport: () -> Unit,
     onConfirmDaily: (amount: Double) -> Unit,
     onRefreshRates: () -> Unit,
-    onSelectCounter: (Int) -> Unit,
     onCheckUpdate: () -> Unit,
     onShowNotes: () -> Unit,
     onShowGuide: () -> Unit,
@@ -140,7 +139,7 @@ fun YeterScreen(
                             onClick = { infoOpen = false; onOpenReset() }
                         )
                     }
-                    // Dişli: ayarlar, sayaç görünümü, rehber
+                    // Dişli: ayarlar, rehber
                     var menuOpen by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Rounded.Settings, contentDescription = "Ayarlar")
@@ -151,12 +150,6 @@ fun YeterScreen(
                             leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
                             onClick = { menuOpen = false; onOpenEdit() }
                         )
-                        listOf("Klasik", "Kumbara", "Para yığını", "Kart", "Kasa").forEachIndexed { i, name ->
-                            DropdownMenuItem(
-                                text = { Text("Sayaç: $name" + if (state.counterStyle == i) "  ✓" else "") },
-                                onClick = { menuOpen = false; onSelectCounter(i) }
-                            )
-                        }
                         DropdownMenuItem(
                             text = { Text("Rehberi göster") },
                             leadingIcon = { Icon(Icons.Rounded.Lightbulb, contentDescription = null) },
@@ -545,19 +538,7 @@ fun SayacTabContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         // Canlı birikim: kalan yüksekliği alır
-        if (state.counterStyle == 4) {
-            CounterD(state = state, modifier = Modifier.weight(1f))
-        } else {
-            // Eski sabit yükseklikli stiller: kırpılmasın diye kaydırılabilir kutu
-            Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                when (state.counterStyle) {
-                    1 -> CounterA(state = state)
-                    2 -> CounterB(state = state)
-                    3 -> CounterC(state = state)
-                    else -> HeroCounter(state = state)
-                }
-            }
-        }
+        CounterD(state = state, modifier = Modifier.weight(1f))
 
         // Hedef: kompakt kart (ad + tutar, ince çubuk, tek küçük satır)
         YeterCard {
