@@ -292,7 +292,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
 
             val dateFormat = SimpleDateFormat("dd MMMM yyyy", Locale("tr", "TR"))
             val reachDateStr = if (primary != null && daily > 0) {
-                dateFormat.format(Date(now + (daysLeft * 86400 * 1000L)))
+                dateFormat.format(Date(now + daysLeft * 86_400_000L))
             } else "-"
 
             val motivation = when {
@@ -600,6 +600,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     fun claimGoal(id: String) {
         val item = goals.firstOrNull { it.id == id } ?: return
         val cost = toHome(item, _uiState.value)
+        if (_uiState.value.totalSaved + 0.005 < cost) return
         val spent = _uiState.value.spentTotal + cost
         val claimed = _uiState.value.claimedCount + 1
         val editor = prefs.edit().putFloat("spent_total", spent.toFloat()).putInt("claimed_count", claimed)

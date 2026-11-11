@@ -40,20 +40,21 @@ object Updater {
             val json = JSONObject(body)
             val tag = json.optString("tag_name", "")
             if (tag.isEmpty()) return null
-            var url = json.optString("html_url", "https://github.com/$REPO/releases")
+            var url: String? = null
             var size = 0L
             val assets = json.optJSONArray("assets")
             if (assets != null) {
                 for (i in 0 until assets.length()) {
                     val a = assets.getJSONObject(i)
-                    if (a.optString("name").endsWith(".apk")) {
-                        url = a.optString("browser_download_url", url)
+                    val dl = a.optString("browser_download_url")
+                    if (a.optString("name").endsWith(".apk") && dl.isNotEmpty()) {
+                        url = dl
                         size = a.optLong("size", 0L)
                         break
                     }
                 }
             }
-            UpdateInfo(tag, url, cleanNotes(json.optString("body", "")), size)
+            UpdateInfo(tag, url ?: return null, cleanNotes(json.optString("body", "")), size)
         } catch (e: Exception) {
             null
         }

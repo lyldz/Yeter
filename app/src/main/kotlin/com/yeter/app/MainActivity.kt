@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
                             viewModel.completeOnboarding(home, daily, name, price, cur, rec)
                         }
                     )
-                } else if (state.showUpdateDialog) {
+                } else if (state.showUpdateDialog && !state.urgeActive && !state.showUrgeDialog) {
                     UpdateScreen(
                         state = state,
                         onUpdate = { viewModel.startUpdateDownload() },
