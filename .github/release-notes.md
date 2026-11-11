@@ -1,9 +1,8 @@
-### Yeter! v1.2.9 · Kalkan
+### Yeter! v1.2.10 · Kalkan
 
-- **Ana ekran tek sayfa:** Sayaç sekmesi artık kaydırma gerektirmez. Kasa, kalan alana göre boyutlanır; hedef kartı ve DUR düğmesi aynı ekranda görünür.
-- **Daha şık simgeler:** Bugün / Direnilen / Kurtarılan tek satırda küçük simgelerle gösterilir; hedef kartı sıkılaştı.
-- Ana ekrandaki "Dönüm noktaları" bölümü kaldırıldı.
-- Veriler korunur; v1.2.8 üzerine doğrudan kurulur.
+- **Kasa:** Tutarın üstünde görünüp rakamla üst üste binen yeşil "+0,01" etiketi kaldırıldı. Para düşünce tutar yine hafifçe büyüyüp parlar.
+- v1.2.9'daki tek sayfa ana ekran düzeni bu sürümde de var.
+- Veriler korunur; v1.2.9 üzerine doğrudan kurulur.
 
 #### İndirme:
 Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını indirip kurabilirsiniz.

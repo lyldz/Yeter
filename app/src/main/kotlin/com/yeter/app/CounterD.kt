@@ -3,7 +3,6 @@ package com.yeter.app
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -474,9 +473,7 @@ fun CounterD(state: YeterUiState, modifier: Modifier = Modifier) {
 
     // Gösterilen tutar ve animasyon değerleri
     var displayed by remember { mutableDoubleStateOf(state.totalSaved) }
-    var labelText by remember { mutableStateOf("") }
     val tick = remember { Animatable(0f) }      // tutar "tık" (ölçek/parıltı), 1 -> 0
-    val label = remember { Animatable(1f) }     // "+2,25" etiketi, 0 -> 1 (1 = gizli)
     val slots = remember { List(MaxInFlightD) { Animatable(1f) } } // düşen para ilerlemesi (1 = gizli)
     val landX = remember { FloatArray(MaxInFlightD) }               // iniş x kayması (dp)
 
@@ -536,14 +533,9 @@ fun CounterD(state: YeterUiState, modifier: Modifier = Modifier) {
                                 )
                                 landed++
                                 displayed = anchor + landed * coinValue
-                                labelText = "+" + fmtCoinD(coinValue, locale)
                                 launch {
                                     tick.snapTo(1f)
                                     tick.animateTo(0f, tween(520, easing = FastOutSlowInEasing))
-                                }
-                                launch {
-                                    label.snapTo(0f)
-                                    label.animateTo(1f, tween(1100, easing = LinearOutSlowInEasing))
                                 }
                             } finally {
                                 slotBusy[idx] = false
@@ -685,7 +677,7 @@ fun CounterD(state: YeterUiState, modifier: Modifier = Modifier) {
                 }
         )
 
-        // Tutar + yukarı süzülen "+2,25" etiketi
+        // Tutar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -722,25 +714,6 @@ fun CounterD(state: YeterUiState, modifier: Modifier = Modifier) {
                     softWrap = false
                 )
             }
-            Text(
-                text = labelText,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (done) YeterLime else YeterMint,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .graphicsLayer {
-                        val p = label.value
-                        translationY = -p * 24.dp.toPx() + 12.dp.toPx()
-                        alpha = when {
-                            p >= 1f -> 0f
-                            p < 0.15f -> p / 0.15f
-                            else -> 1f - (p - 0.15f) / 0.85f
-                        }
-                    }
-            )
         }
 
         // Tek sönük satır; dar ekranda kesilmesin
