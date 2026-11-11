@@ -92,11 +92,11 @@ private val NiceValuesD = doubleArrayOf(
     10.0, 15.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0, 10000.0
 )
 
-// Para aralığı en az ~4 sn olacak en küçük güzel değer; hiçbiri yetmezse en büyüğü. Gelir yoksa 0 (para düşmez).
+// En az 1 birim; para aralığı ~4 sn'den sıkışacak kadar büyük gelirde daha büyük güzel değer. Gelir yoksa 0 (para düşmez).
 private fun pickCoinValueD(dailySaving: Double): Double {
     if (dailySaving <= 0.0 || dailySaving.isNaN()) return 0.0
     val perSec = dailySaving / 86_400.0
-    val need = perSec * 4.0
+    val need = maxOf(perSec * 4.0, 1.0)
     for (v in NiceValuesD) if (v >= need) return v
     return NiceValuesD.last()
 }
