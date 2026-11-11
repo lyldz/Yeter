@@ -632,8 +632,8 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     // Hedefe ulaşıldı: tutarı havuzdan düş. Tekrarlı hedef listede kalır.
     fun claimGoal(id: String) {
         val item = goals.firstOrNull { it.id == id } ?: return
-        val cost = toHome(item, _uiState.value)
-        if (_uiState.value.totalSaved + 0.005 < cost) return
+        // Elle "satın alındı": birikim yetmese bile tamamlanır, havuzdan en çok mevcut birikim kadar düşer
+        val cost = minOf(toHome(item, _uiState.value), _uiState.value.totalSaved)
         val spent = _uiState.value.spentTotal + cost
         val claimed = _uiState.value.claimedCount + 1
         val editor = prefs.edit().putMoney("spent_total", spent).putInt("claimed_count", claimed)

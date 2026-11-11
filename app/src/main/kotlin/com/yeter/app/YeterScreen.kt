@@ -314,22 +314,6 @@ fun YeterScreen(
         var tempWage by remember { mutableStateOf(if (state.hourlyWage > 0) state.hourlyWage.toString() else "") }
         var tempHour by remember { mutableStateOf(state.notifyHour) }
         val ctx = LocalContext.current
-        var confirmDailyChange by remember { mutableStateOf(false) }
-        if (confirmDailyChange) {
-            AlertDialog(
-                onDismissRequest = { confirmDailyChange = false },
-                title = { Text("Günlük birikim değişsin mi?", fontWeight = FontWeight.Bold) },
-                text = { Text("Aktif birikim tutarını değiştirirsen kasa baştan hesaplanır: altın değeri yenilenir ve düşme sıfırdan başlar. Biriken paran silinmez, geçmiş günler eski tutarla kalır.") },
-                confirmButton = {
-                    Button(onClick = {
-                        confirmDailyChange = false
-                        val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
-                        onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
-                    }) { Text("Değiştir") }
-                },
-                dismissButton = { TextButton(onClick = { confirmDailyChange = false }) { Text("Vazgeç") } }
-            )
-        }
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
@@ -380,8 +364,7 @@ fun YeterScreen(
                         android.widget.Toast.makeText(ctx, "Kur alınamadı, para birimi şimdilik değiştirilemez", android.widget.Toast.LENGTH_LONG).show()
                         return@Button
                     }
-                    if (kotlin.math.abs(daily - state.dailySaving) > 0.004) confirmDailyChange = true
-                    else onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
+                    onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
                 }) { Text("Kaydet") }
             },
             dismissButton = { TextButton(onClick = onCloseEdit) { Text("İptal") } }
@@ -813,10 +796,21 @@ fun WishlistItemCard(
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = onClaim, modifier = Modifier.fillMaxWidth()) {
-                Text("Aldım")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onClaim, modifier = Modifier.weight(1f)) { Text("Satın alındı") }
+                OutlinedButton(onClick = onDelete) { Text("İptal") }
             }
         } else {
+            var askBuy by remember { mutableStateOf(false) }
+            if (askBuy) {
+                AlertDialog(
+                    onDismissRequest = { askBuy = false },
+                    title = { Text("Satın alındı mı?", fontWeight = FontWeight.Bold) },
+                    text = { Text("Hedef tamamlanır ve birikimden ürün fiyatı kadar (en fazla mevcut birikimin) düşülür.") },
+                    confirmButton = { Button(onClick = { askBuy = false; onClaim() }) { Text("Evet, aldım") } },
+                    dismissButton = { TextButton(onClick = { askBuy = false }) { Text("Vazgeç") } }
+                )
+            }
             val left = buildString {
                 if (item.daysRemaining > 0) append("${item.daysRemaining} gün ")
                 append("${item.hoursRemaining} sa ${item.minutesRemaining} dk")
@@ -828,6 +822,10 @@ fun WishlistItemCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = muted
                 )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                OutlinedButton(onClick = { askBuy = true }, modifier = Modifier.weight(1f)) { Text("Satın alındı") }
+                TextButton(onClick = onDelete) { Text("İptal") }
             }
         }
     }
