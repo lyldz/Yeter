@@ -1,7 +1,7 @@
 # Sürüm düzeni
 
 ## Kural
-- Biçim: `MAJOR.MINOR.PATCH` (ör. 1.2.0). Git etiketi ve uygulamadaki gösterim `v` önekiyle: `v1.2.0`.
+- Biçim: `MAJOR.MINOR.PATCH` (ör. 1.2.1). Git etiketi ve uygulamadaki gösterim `v` önekiyle: `v1.2.1`.
 - Küçük değişiklikte bile sürüm artar: her değişiklikte en az PATCH yükselir.
 - Yeni özellik: MINOR artar, PATCH sıfırlanır. Büyük yeniden tasarım: MAJOR artar, diğerleri sıfırlanır.
 - `VERSION_CODE` her sürümde 1 artar, asla düşmez.
@@ -13,7 +13,7 @@
 | 2.x.x | (henüz belirlenmedi) |
 
 ## Release adı
-`Yeter! v<sürüm> · <seri adı> (APK)` — örnek: `Yeter! v1.2.0 · Kalkan (APK)`.
+`Yeter! v<sürüm> · <seri adı> (APK)` — örnek: `Yeter! v1.2.1 · Kalkan (APK)`.
 Etiket: `v<sürüm>`. Ad ve etiket iş akışında `version.properties`'ten otomatik üretilir.
 
 ## Sürüm artırırken dokunulacak dosyalar

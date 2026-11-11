@@ -10,7 +10,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
@@ -42,11 +43,16 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Job
@@ -54,8 +60,11 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -68,7 +77,14 @@ private const val DropMsD = 650
 private val CoinLightD = Color(0xFFFFEFA8)
 private val CoinMidD = YeterAmber
 private val CoinDarkD = Color(0xFFB9770E)
+private val CoinEdgeD = Color(0xFF8A5A0B)
 private val SteelD = Color(0xFF2A3858)
+private val SteelTopD = Color(0xFF1B2640)
+private val MetalEdgeD = Color(0xFF8FA0C0)
+private val SparkD = Color(0xFFFFF4C2)
+private val StackTonesD = arrayOf(
+    Color(0xFFFFD36B), Color(0xFFFFC24A), Color(0xFFFFB547), Color(0xFFF2A92E), Color(0xFFFFE08A)
+)
 
 // Okunaklı sabit tutarlar
 private val NiceValuesD = doubleArrayOf(
@@ -98,36 +114,182 @@ private class SafeGeoD(
     val innerL: Float, val innerR: Float, val innerTop: Float, val innerBottom: Float
 )
 
+// Boyuta bağlı her şey (geometri, fırça, yol, yığın ızgarası) bir kez hazırlanır.
+private class SafeCacheD(val g: SafeGeoD, val dp: Float) {
+    val n = StackRowsD * StackColsD
+    val sx = FloatArray(n)
+    val sy = FloatArray(n)
+    val sw = FloatArray(n)
+    val sh = FloatArray(n)
+    val tone = IntArray(n)
+    val bodyClip = Path()
+    val innerClip = Path()
+    val shine = Path()
+    val pile = Path() // her karede yeniden doldurulur (rewind), yeni nesne üretilmez
+    lateinit var bodyBrush: Brush
+    lateinit var lidBrush: Brush
+    lateinit var cavityBrush: Brush
+    lateinit var pileBrush: Brush
+    lateinit var stripBrush: Brush
+    lateinit var shineBrush: Brush
+    lateinit var wallLBrush: Brush
+    lateinit var wallRBrush: Brush
+    lateinit var glowBrush: Brush
+    lateinit var sweepBrush: Brush
+}
+
+private const val StackRowsD = 5
+private const val StackColsD = 8 // 5 x 8 = 40 para üst sınırı
+
+private fun buildSafeCacheD(w: Float, h: Float, dp: Float): SafeCacheD {
+    val safeW = min(w, 250f * dp)
+    val x0 = (w - safeW) / 2f
+    val cx = w / 2f
+    val lidTop = 40f * dp
+    val lidH = 16f * dp
+    val bodyTop = lidTop + lidH - 2f * dp
+    val bodyBottom = h - 6f * dp
+    val g = SafeGeoD(
+        cx, x0, x0 + safeW, lidTop, lidH, bodyTop, bodyBottom,
+        x0 + 11f * dp, x0 + safeW - 11f * dp, bodyTop + 8f * dp, bodyBottom - 10f * dp
+    )
+    val c = SafeCacheD(g, dp)
+    val bodyH = bodyBottom - bodyTop
+    val corner = 14f * dp
+    c.bodyClip.addRoundRect(RoundRect(g.x0, bodyTop, g.x1, bodyBottom, CornerRadius(corner, corner)))
+    c.innerClip.addRoundRect(
+        RoundRect(g.innerL, g.innerTop, g.innerR, g.innerBottom, CornerRadius(9f * dp, 9f * dp))
+    )
+    // eğik çapraz parlama
+    c.shine.apply {
+        moveTo(g.x0 + safeW * 0.50f, bodyTop)
+        lineTo(g.x0 + safeW * 0.66f, bodyTop)
+        lineTo(g.x0 + safeW * 0.36f, bodyTop + bodyH * 0.55f)
+        lineTo(g.x0 + safeW * 0.20f, bodyTop + bodyH * 0.55f)
+        close()
+    }
+    c.bodyBrush = Brush.verticalGradient(listOf(SteelTopD, SteelD), startY = bodyTop, endY = bodyBottom)
+    c.lidBrush = Brush.verticalGradient(
+        listOf(Color(0xFF5A6E98), SteelD), startY = g.lidTop, endY = g.lidTop + g.lidH
+    )
+    c.cavityBrush = Brush.verticalGradient(
+        listOf(Color(0xFF070C18), Color(0xFF0E1628)), startY = g.innerTop, endY = g.innerBottom
+    )
+    c.pileBrush = Brush.verticalGradient(
+        listOf(CoinMidD, CoinDarkD), startY = g.innerTop, endY = g.innerBottom
+    )
+    c.stripBrush = Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.03f)),
+        startY = bodyTop, endY = bodyBottom
+    )
+    c.shineBrush = Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
+        startY = bodyTop, endY = bodyTop + bodyH * 0.55f
+    )
+    c.wallLBrush = Brush.horizontalGradient(
+        listOf(CoinMidD.copy(alpha = 0.35f), Color.Transparent),
+        startX = g.innerL, endX = g.innerL + 10f * dp
+    )
+    c.wallRBrush = Brush.horizontalGradient(
+        listOf(Color.Transparent, CoinMidD.copy(alpha = 0.35f)),
+        startX = g.innerR - 10f * dp, endX = g.innerR
+    )
+    c.glowBrush = Brush.radialGradient(
+        listOf(CoinMidD.copy(alpha = 0.45f), Color.Transparent),
+        center = Offset(g.cx, bodyTop + bodyH * 0.5f), radius = safeW * 0.85f
+    )
+    c.sweepBrush = Brush.horizontalGradient(
+        listOf(Color.Transparent, SparkD.copy(alpha = 0.55f), Color.Transparent),
+        startX = 0f, endX = 60f * dp
+    )
+    // Yığın: sabit ızgara, indeks tabanlı sahte rastgele ofset/boyut/ton. Hep aynı yerde durur.
+    val iw = g.innerR - g.innerL
+    val innerH = g.innerBottom - g.innerTop
+    val colW = iw / (StackColsD - 1)
+    val rowH = innerH / StackRowsD
+    for (r in 0 until StackRowsD) for (col in 0 until StackColsD) {
+        val i = r * StackColsD + col
+        val cw = colW * (1.0f + ((i * 29) % 7) * 0.025f)
+        c.sw[i] = cw
+        c.sh[i] = cw * 0.42f
+        c.sx[i] = g.innerL + (col + 0.5f * (r % 2)) * colW + (((i * 37) % 7) - 3) * 0.8f * dp
+        c.sy[i] = g.innerBottom - (r + 0.5f) * rowH + (((i * 53) % 5) - 2) * 1.0f * dp
+        c.tone[i] = (i * 37) % StackTonesD.size
+    }
+    return c
+}
+
+// Tek bir beş köşeli yıldız (yarıçap 1, orijinde); paranın damgası için ölçeklenir.
+private val StarD = Path().apply {
+    for (k in 0 until 10) {
+        val r = if (k % 2 == 0) 1f else 0.42f
+        val a = (-90.0 + k * 36.0) * PI / 180.0
+        val px = (cos(a) * r).toFloat()
+        val py = (sin(a) * r).toFloat()
+        if (k == 0) moveTo(px, py) else lineTo(px, py)
+    }
+    close()
+}
+
+// Düşen para: ışık sol üstten; yan dönünce kalınlık büyür, yüz kararır.
 private fun DrawScope.drawCoinD(
     cx: Float, cy: Float, d: Float, sx: Float, sy: Float,
     light: Color, mid: Color, dark: Color
 ) {
     val w = d * sx
     val h = d * sy
-    // kalınlık / kenar
-    drawOval(color = dark, topLeft = Offset(cx - w / 2f, cy - h / 2f + d * 0.07f), size = Size(w, h))
+    val lit = sx.coerceIn(0f, 1f)
+    val t = d * (0.08f + 0.14f * (1f - lit))
+    // kalınlık (altının koyu tonu)
+    drawOval(color = CoinEdgeD, topLeft = Offset(cx - w / 2f, cy - h / 2f + t), size = Size(w, h))
+    drawRect(color = CoinEdgeD, topLeft = Offset(cx - w / 2f, cy), size = Size(w, t))
     // yüz
     drawOval(
-        brush = Brush.verticalGradient(listOf(light, mid), startY = cy - h / 2f, endY = cy + h / 2f),
+        brush = Brush.radialGradient(
+            listOf(lerp(dark, light, lit), lerp(dark, mid, lit), dark),
+            center = Offset(cx - w * 0.2f, cy - h * 0.25f),
+            radius = max(max(w, h) * 0.85f, 1f)
+        ),
         topLeft = Offset(cx - w / 2f, cy - h / 2f),
         size = Size(w, h)
     )
-    // iç halka
-    val rw = w * 0.68f
-    val rh = h * 0.68f
     drawOval(
-        color = dark.copy(alpha = 0.5f),
-        topLeft = Offset(cx - rw / 2f, cy - rh / 2f),
-        size = Size(rw, rh),
-        style = Stroke(width = d * 0.05f)
+        color = CoinEdgeD.copy(alpha = 0.55f),
+        topLeft = Offset(cx - w / 2f, cy - h / 2f), size = Size(w, h),
+        style = Stroke(width = d * 0.03f)
     )
-    if (sx > 0.5f && sy > 0.5f) {
-        drawOval(
-            color = Color.White.copy(alpha = 0.5f),
-            topLeft = Offset(cx - w * 0.28f, cy - h * 0.32f),
-            size = Size(w * 0.2f, h * 0.16f)
-        )
+    if (sx > 0.3f) {
+        val rw = w * 0.72f
+        val rh = h * 0.72f
+        val tl = Offset(cx - rw / 2f, cy - rh / 2f)
+        val sz = Size(rw, rh)
+        val sw = Stroke(width = d * 0.04f)
+        drawArc(Color.White.copy(alpha = 0.35f), 180f, 180f, false, tl, sz, style = sw)
+        drawArc(CoinEdgeD.copy(alpha = 0.55f), 0f, 180f, false, tl, sz, style = sw)
     }
+    if (sx > 0.35f) {
+        withTransform({
+            translate(cx, cy)
+            scale(sx * d * 0.17f, sy * d * 0.17f, Offset.Zero)
+        }) { drawPath(StarD, CoinEdgeD.copy(alpha = 0.7f)) }
+    }
+    if (sx > 0.5f) {
+        drawCircle(Color.White, radius = d * 0.045f, center = Offset(cx - w * 0.28f, cy - h * 0.3f))
+    }
+}
+
+// Yığındaki para: gradyansız (kare başı ~40 adet), ton farkı renk dizisinden.
+private fun DrawScope.drawStackCoinD(cx: Float, cy: Float, w: Float, h: Float, face: Color, dp: Float) {
+    val t = 3.5f * dp
+    drawOval(color = CoinEdgeD, topLeft = Offset(cx - w / 2f, cy - h / 2f + t), size = Size(w, h))
+    drawRect(color = CoinEdgeD, topLeft = Offset(cx - w / 2f, cy), size = Size(w, t))
+    drawOval(color = face, topLeft = Offset(cx - w / 2f, cy - h / 2f), size = Size(w, h))
+    drawOval(
+        color = CoinEdgeD.copy(alpha = 0.4f),
+        topLeft = Offset(cx - w * 0.33f, cy - h * 0.33f), size = Size(w * 0.66f, h * 0.66f),
+        style = Stroke(width = 0.9f * dp)
+    )
+    drawCircle(Color.White.copy(alpha = 0.7f), radius = 1.1f * dp, center = Offset(cx - w * 0.26f, cy - h * 0.2f))
 }
 
 private fun DrawScope.drawSparkleD(c: Offset, r: Float, color: Color) {
@@ -136,127 +298,165 @@ private fun DrawScope.drawSparkleD(c: Offset, r: Float, color: Color) {
     drawLine(color, Offset(c.x, c.y - r), Offset(c.x, c.y + r), strokeWidth = w)
 }
 
-// Kasa gövdesi (yarı saydam cam), içindeki altın yığını ve üst kapak/yuva.
+// Kasa: çelik gövde, cam iç duvar, deterministik altın yığını, kapak ve yuva.
 private fun DrawScope.drawSafeD(
-    g: SafeGeoD, dp: Float, fill: Float, done: Boolean, glowA: Float, tickV: Float
+    c: SafeCacheD, fill: Float, done: Boolean, glowA: Float, tickV: Float
 ) {
+    val g = c.g
+    val dp = c.dp
     val safeW = g.x1 - g.x0
     val bodyH = g.bodyBottom - g.bodyTop
     val corner = 14f * dp
+    val innerW = g.innerR - g.innerL
+    val innerH = g.innerBottom - g.innerTop
 
     if (done) {
         drawCircle(
-            brush = Brush.radialGradient(
-                listOf(CoinMidD.copy(alpha = glowA * 0.45f), Color.Transparent),
-                center = Offset(g.cx, g.bodyTop + bodyH * 0.5f),
-                radius = safeW * 0.85f
-            ),
-            radius = safeW * 0.85f,
-            center = Offset(g.cx, g.bodyTop + bodyH * 0.5f)
+            brush = c.glowBrush, radius = safeW * 0.85f,
+            center = Offset(g.cx, g.bodyTop + bodyH * 0.5f), alpha = glowA
         )
     }
 
-    // cam gövde
+    // çelik gövde
     drawRoundRect(
-        color = YeterCard.copy(alpha = 0.72f),
-        topLeft = Offset(g.x0, g.bodyTop),
-        size = Size(safeW, bodyH),
+        brush = c.bodyBrush, topLeft = Offset(g.x0, g.bodyTop), size = Size(safeW, bodyH),
         cornerRadius = CornerRadius(corner, corner)
+    )
+    // iç boşluk
+    drawRoundRect(
+        brush = c.cavityBrush, topLeft = Offset(g.innerL, g.innerTop), size = Size(innerW, innerH),
+        cornerRadius = CornerRadius(9f * dp, 9f * dp)
     )
 
     // altın yığını
-    val innerH = g.innerBottom - g.innerTop
-    val surfaceY = g.innerBottom - fill.coerceIn(0f, 1f) * innerH
-    if (fill > 0.001f) {
-        val clip = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    g.innerL, g.innerTop, g.innerR, g.innerBottom,
-                    CornerRadius(9f * dp, 9f * dp)
+    val f = fill.coerceIn(0f, 1f)
+    val surfaceY = g.innerBottom - f * innerH
+    if (f > 0.001f) {
+        clipPath(c.innerClip) {
+            withTransform({ scale(1f, 1f - 0.06f * tickV, Offset(g.cx, g.innerBottom)) }) {
+                val bump = 4f * dp
+                c.pile.rewind()
+                c.pile.moveTo(g.innerL, surfaceY + bump * 0.8f)
+                c.pile.cubicTo(
+                    g.innerL + innerW * 0.3f, surfaceY - bump * 1.2f,
+                    g.innerL + innerW * 0.7f, surfaceY - bump * 1.2f,
+                    g.innerR, surfaceY + bump * 0.8f
                 )
-            )
-        }
-        clipPath(clip) {
-            drawRect(
-                brush = Brush.verticalGradient(
-                    listOf(CoinMidD, CoinDarkD), startY = surfaceY, endY = g.innerBottom
-                ),
-                topLeft = Offset(g.innerL, surfaceY),
-                size = Size(g.innerR - g.innerL, g.innerBottom - surfaceY)
-            )
-            // para kenarı çizgileri
-            var ly = surfaceY + 10f * dp
-            while (ly < g.innerBottom) {
-                drawLine(
-                    CoinDarkD.copy(alpha = 0.35f),
-                    Offset(g.innerL, ly), Offset(g.innerR, ly), strokeWidth = 1f * dp
-                )
-                ly += 8f * dp
+                c.pile.lineTo(g.innerR, g.innerBottom + 2f * dp)
+                c.pile.lineTo(g.innerL, g.innerBottom + 2f * dp)
+                c.pile.close()
+                clipPath(c.pile) {
+                    drawRect(
+                        brush = c.pileBrush, topLeft = Offset(g.innerL, g.innerTop), size = Size(innerW, innerH + 2f * dp)
+                    )
+                    // üst sıralar önce, alt sıralar üstüne
+                    for (r in StackRowsD - 1 downTo 0) for (col in 0 until StackColsD) {
+                        val i = r * StackColsD + col
+                        if (c.sy[i] + c.sh[i] * 0.5f < surfaceY - 8f * dp) continue
+                        drawStackCoinD(c.sx[i], c.sy[i], c.sw[i], c.sh[i], StackTonesD[c.tone[i]], dp)
+                    }
+                    if (done) {
+                        val sx0 = g.innerL + ((glowA - 0.35f) / 0.65f) * innerW - 30f * dp
+                        withTransform({ translate(sx0, 0f) }) {
+                            drawRect(
+                                brush = c.sweepBrush, topLeft = Offset(0f, surfaceY - 8f * dp),
+                                size = Size(60f * dp, 18f * dp)
+                            )
+                        }
+                    }
+                }
             }
-            // yüzeydeki para yüzleri
-            val d = 22f * dp
-            var i = 0
-            var x = g.innerL + 6f * dp
-            while (x < g.innerR + d) {
-                val yy = surfaceY + (if (i % 2 == 0) 0f else 4f * dp)
-                drawCoinD(x, yy, d, 1f, 0.42f, CoinLightD, CoinMidD, CoinDarkD)
-                x += 19f * dp
-                i++
+            // cam iç duvara altın yansıma (%70 ve üstü)
+            if (f >= 0.7f) {
+                val a = ((f - 0.7f) / 0.3f).coerceIn(0f, 1f)
+                drawRect(c.wallLBrush, Offset(g.innerL, g.innerTop), Size(10f * dp, innerH), alpha = a)
+                drawRect(c.wallRBrush, Offset(g.innerR - 10f * dp, g.innerTop), Size(10f * dp, innerH), alpha = a)
             }
         }
-        // iniş parıltısı
+        // iniş: temas gölgesi, parıltı, toz
         if (tickV > 0.01f) {
+            drawOval(
+                color = Color.Black.copy(alpha = 0.30f * tickV),
+                topLeft = Offset(g.cx - 32f * dp, surfaceY - 3f * dp), size = Size(64f * dp, 8f * dp)
+            )
             drawCircle(
                 brush = Brush.radialGradient(
-                    listOf(Color(0xFFFFF4C2).copy(alpha = 0.35f * tickV), Color.Transparent),
+                    listOf(SparkD.copy(alpha = 0.35f * tickV), Color.Transparent),
                     center = Offset(g.cx, surfaceY), radius = 70f * dp
                 ),
-                radius = 70f * dp,
-                center = Offset(g.cx, surfaceY)
+                radius = 70f * dp, center = Offset(g.cx, surfaceY)
             )
+            val dust = SparkD.copy(alpha = tickV)
+            val dist = (1f - tickV) * 22f * dp
+            for (k in 0 until 6) {
+                val ang = k * 60f * PI.toFloat() / 180f
+                drawCircle(
+                    dust, radius = 1.6f * dp,
+                    center = Offset(g.cx + cos(ang) * dist, surfaceY - abs(sin(ang)) * dist - 2f * dp)
+                )
+            }
         }
     }
 
-    // cam parlaması
+    // metal yansıma şeritleri ve çapraz parlama
+    drawRoundRect(
+        brush = c.stripBrush, topLeft = Offset(g.x0 + 3f * dp, g.bodyTop + 8f * dp),
+        size = Size(5f * dp, bodyH - 22f * dp), cornerRadius = CornerRadius(2.5f * dp, 2.5f * dp)
+    )
     drawRoundRect(
         color = Color.White.copy(alpha = 0.07f),
-        topLeft = Offset(g.x0 + 6f * dp, g.bodyTop + 8f * dp),
-        size = Size(7f * dp, bodyH - 22f * dp),
-        cornerRadius = CornerRadius(4f * dp, 4f * dp)
+        topLeft = Offset(g.x1 - 6f * dp, g.bodyTop + 12f * dp),
+        size = Size(2.5f * dp, bodyH - 30f * dp), cornerRadius = CornerRadius(1.25f * dp, 1.25f * dp)
     )
-    // çerçeve
+    clipPath(c.bodyClip) { drawPath(c.shine, brush = c.shineBrush) }
+    // iç kenar çizgisi + dış metal kenar
     drawRoundRect(
-        color = if (done) CoinMidD.copy(alpha = 0.9f) else YeterOutline.copy(alpha = 0.6f),
-        topLeft = Offset(g.x0, g.bodyTop),
-        size = Size(safeW, bodyH),
-        cornerRadius = CornerRadius(corner, corner),
-        style = Stroke(width = 2f * dp)
+        color = Color.White.copy(alpha = 0.10f),
+        topLeft = Offset(g.x0 + 2f * dp, g.bodyTop + 2f * dp),
+        size = Size(safeW - 4f * dp, bodyH - 4f * dp),
+        cornerRadius = CornerRadius(corner - 2f * dp, corner - 2f * dp), style = Stroke(width = 1f * dp)
+    )
+    drawRoundRect(
+        color = if (done) CoinMidD.copy(alpha = 0.9f) else MetalEdgeD.copy(alpha = 0.55f),
+        topLeft = Offset(g.x0, g.bodyTop), size = Size(safeW, bodyH),
+        cornerRadius = CornerRadius(corner, corner), style = Stroke(width = 1f * dp)
     )
 
-    // kapak ve yuva
+    // kapak
     drawRoundRect(
-        brush = Brush.verticalGradient(
-            listOf(Color(0xFF4A5C84), SteelD), startY = g.lidTop, endY = g.lidTop + g.lidH
-        ),
-        topLeft = Offset(g.x0 - 4f * dp, g.lidTop),
-        size = Size(safeW + 8f * dp, g.lidH),
-        cornerRadius = CornerRadius(7f * dp, 7f * dp)
+        brush = c.lidBrush, topLeft = Offset(g.x0 - 4f * dp, g.lidTop),
+        size = Size(safeW + 8f * dp, g.lidH), cornerRadius = CornerRadius(7f * dp, 7f * dp)
     )
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.22f),
+        topLeft = Offset(g.x0 - 4f * dp, g.lidTop), size = Size(safeW + 8f * dp, g.lidH),
+        cornerRadius = CornerRadius(7f * dp, 7f * dp), style = Stroke(width = 1f * dp)
+    )
+    drawLine(
+        Color(0xFF05080F).copy(alpha = 0.75f),
+        Offset(g.x0 - 2f * dp, g.lidTop + g.lidH), Offset(g.x1 + 2f * dp, g.lidTop + g.lidH),
+        strokeWidth = 1.5f * dp
+    )
+    // yuva
     val slotW = 64f * dp
     val slotH = 6f * dp
     val slotTop = g.lidTop + (g.lidH - slotH) / 2f
+    val slotCorner = CornerRadius(slotH / 2f, slotH / 2f)
+    if (done) {
+        drawRoundRect(
+            color = YeterMint.copy(alpha = 0.28f * glowA),
+            topLeft = Offset(g.cx - slotW / 2f - 3f * dp, slotTop - 3f * dp),
+            size = Size(slotW + 6f * dp, slotH + 6f * dp), cornerRadius = CornerRadius(slotH, slotH)
+        )
+    }
     drawRoundRect(
-        color = Color(0xFF05080F),
-        topLeft = Offset(g.cx - slotW / 2f, slotTop),
-        size = Size(slotW, slotH),
-        cornerRadius = CornerRadius(slotH / 2f, slotH / 2f)
+        color = Color(0xFF05080F), topLeft = Offset(g.cx - slotW / 2f, slotTop),
+        size = Size(slotW, slotH), cornerRadius = slotCorner
     )
     drawRoundRect(
-        color = CoinMidD.copy(alpha = 0.55f),
-        topLeft = Offset(g.cx - slotW / 2f, slotTop),
-        size = Size(slotW, slotH),
-        cornerRadius = CornerRadius(slotH / 2f, slotH / 2f),
-        style = Stroke(width = 1f * dp)
+        color = if (done) YeterMint.copy(alpha = 0.5f + 0.5f * glowA) else CoinMidD.copy(alpha = 0.55f),
+        topLeft = Offset(g.cx - slotW / 2f, slotTop), size = Size(slotW, slotH),
+        cornerRadius = slotCorner, style = Stroke(width = 1f * dp)
     )
 }
 
@@ -373,13 +573,23 @@ fun CounterD(state: YeterUiState) {
         )
     } else null
 
+
     val shownText = fmtMoneyD(displayed, locale)
     val amountSize = when {
         shownText.length <= 8 -> 46.sp
         shownText.length <= 11 -> 38.sp
         else -> 32.sp
     }
-    val amountBrush = Brush.verticalGradient(listOf(Color(0xFFFFF4C2), YeterAmber))
+    // Gradyan sınırsız: metin boyutuna kendiliğinden uyar, bu yüzden tek sefer üretilir.
+    val amountBrush = remember { Brush.verticalGradient(listOf(Color(0xFFFFF4C2), YeterAmber)) }
+
+    // İniş titreşimi (görsel katman): ilk değeri atla
+    val haptic = LocalHapticFeedback.current
+    val hapticArmed = remember { booleanArrayOf(false) }
+    LaunchedEffect(displayed) {
+        if (hapticArmed[0]) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        else hapticArmed[0] = true
+    }
 
     val desc = "Kasada " + String.format(locale, "%,d", displayed.toLong().coerceAtLeast(0L)) +
         " " + symbol + ", hedefin yüzde " + percent + "'i" +
@@ -392,55 +602,55 @@ fun CounterD(state: YeterUiState) {
             .clearAndSetSemantics { contentDescription = desc },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Canvas(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(190.dp)
-        ) {
-            val dp = 1.dp.toPx()
-            val safeW = min(size.width, 250f * dp)
-            val x0 = (size.width - safeW) / 2f
-            val cx = size.width / 2f
-            val lidTop = 40f * dp
-            val lidH = 16f * dp
-            val bodyTop = lidTop + lidH - 2f * dp
-            val bodyBottom = size.height - 6f * dp
-            val g = SafeGeoD(
-                cx, x0, x0 + safeW, lidTop, lidH, bodyTop, bodyBottom,
-                x0 + 11f * dp, x0 + safeW - 11f * dp, bodyTop + 8f * dp, bodyBottom - 10f * dp
-            )
-            val fill = fillState.value
-            val glowA = glowState?.value ?: 0f
-            drawSafeD(g, dp, fill, done, glowA, tick.value)
+                .drawWithCache {
+                    // Yalnızca boyuta bağlı hazırlık; State okuması yok
+                    val c = buildSafeCacheD(size.width, size.height, density)
+                    onDrawBehind {
+                        val dp = c.dp
+                        val g = c.g
+                        val fill = fillState.value
+                        val glowA = glowState?.value ?: 0f
+                        drawSafeD(c, fill, done, glowA, tick.value)
 
-            // düşen paralar
-            val surfaceY = g.innerBottom - fill * (g.innerBottom - g.innerTop)
-            val d = 22f * dp
-            val startY = lidTop + 1f * dp
-            val landY = surfaceY - 4f * dp
-            for (i in 0 until MaxInFlightD) {
-                val p = slots[i].value
-                if (p <= 0f || p >= 1f) continue
-                val sx = abs(sin(p * 3.5f * Math.PI.toFloat())).coerceAtLeast(0.2f)
-                val x = cx + landX[i] * dp * p
-                val y = startY + (landY - startY).coerceAtLeast(0f) * p
-                drawCoinD(x, y, d, sx, 1f, CoinLightD, CoinMidD, CoinDarkD)
-            }
+                        // düşen paralar: gölgeli, inişte yığına "girer"
+                        val surfaceY = g.innerBottom - fill.coerceIn(0f, 1f) * (g.innerBottom - g.innerTop)
+                        val d = 22f * dp
+                        val startY = g.lidTop + 1f * dp
+                        val landY = surfaceY + d * 0.1f
+                        for (i in 0 until MaxInFlightD) {
+                            val p = slots[i].value
+                            if (p <= 0f || p >= 1f) continue
+                            val sx = abs(sin(p * 3.5f * Math.PI.toFloat())).coerceAtLeast(0.2f)
+                            val sy = 1f - 0.55f * p * p * p
+                            val x = g.cx + landX[i] * dp * p
+                            val y = startY + (landY - startY).coerceAtLeast(0f) * p
+                            drawOval(
+                                color = Color.Black.copy(alpha = 0.22f),
+                                topLeft = Offset(x - d * sx * 0.45f + 2f * dp, y + d * 0.3f),
+                                size = Size(d * sx * 0.9f, d * 0.22f)
+                            )
+                            drawCoinD(x, y, d, sx, sy, CoinLightD, CoinMidD, CoinDarkD)
+                        }
 
-            if (done) {
-                val c = Color(0xFFFFF4C2).copy(alpha = glowA)
-                drawSparkleD(Offset(g.x0 - 10f * dp, bodyTop + 24f * dp), 9f * dp, c)
-                drawSparkleD(Offset(g.x1 + 10f * dp, bodyTop + 60f * dp), 7f * dp, c)
-                drawSparkleD(Offset(cx + 70f * dp, lidTop - 14f * dp), 10f * dp, c)
-                drawSparkleD(Offset(cx - 80f * dp, lidTop - 4f * dp), 6f * dp, c)
-            }
-        }
+                        if (done) {
+                            val sp = SparkD.copy(alpha = glowA)
+                            drawSparkleD(Offset(g.x0 - 10f * dp, g.bodyTop + 24f * dp), 9f * dp, sp)
+                            drawSparkleD(Offset(g.x1 + 10f * dp, g.bodyTop + 60f * dp), 7f * dp, sp)
+                            drawSparkleD(Offset(g.cx + 70f * dp, g.lidTop - 14f * dp), 10f * dp, sp)
+                        }
+                    }
+                }
+        )
 
         // Tutar + yukarı süzülen "+2,25" etiketi
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(72.dp),
+                .heightIn(min = 72.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -494,7 +704,7 @@ fun CounterD(state: YeterUiState) {
             )
         }
 
-        // Tek sönük satır
+        // Tek sönük satır; dar ekranda kesilmesin
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -504,7 +714,9 @@ fun CounterD(state: YeterUiState) {
                     text = "Her altın = $symbol" + fmtCoinD(coinValue, locale),
                     fontSize = 12.sp,
                     color = YeterTextSecondary.copy(alpha = 0.7f),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
                 Text(
                     text = "·",
@@ -518,14 +730,16 @@ fun CounterD(state: YeterUiState) {
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = YeterLime,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             } else {
                 Text(
                     text = "Hedef %$percent",
                     fontSize = 12.sp,
                     color = YeterTextSecondary.copy(alpha = 0.7f),
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
