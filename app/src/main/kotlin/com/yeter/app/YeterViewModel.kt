@@ -196,25 +196,25 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             rateSource = prefs.getString("rate_source", "") ?: "",
             dailySaving = segs.last().second,
             startTimestamp = segs.first().first,
-            resistedTotal = prefs.getFloat("resisted_total", 0f).toDouble(),
-            spentTotal = prefs.getFloat("spent_total", 0f).toDouble(),
+            resistedTotal = prefs.getMoney("resisted_total", 0.0),
+            spentTotal = prefs.getMoney("spent_total", 0.0),
             resistedCount = prefs.getInt("resisted_count", 0),
             claimedCount = prefs.getInt("claimed_count", 0),
             pinnedGoalId = prefs.getString("pinned_goal_id", "") ?: "",
-            hourlyWage = prefs.getFloat("hourly_wage", 0f).toDouble(),
+            hourlyWage = prefs.getMoney("hourly_wage", 0.0),
             notifyHour = prefs.getInt("notify_hour", 9),
             events = Savings.loadEvents(prefs),
             slipCount = prefs.getInt("slip_count", 0),
             urgeActive = prefs.contains("urge_end"),
             urgeName = prefs.getString("urge_name", "") ?: "",
-            urgeAmount = prefs.getFloat("urge_amount", 0f).toDouble()
+            urgeAmount = prefs.getMoney("urge_amount", 0.0)
         )
     }
 
     private fun startLiveTimer() {
         viewModelScope.launch {
             while (true) {
-                updateTimeAndCalculations()
+                if (foreground) updateTimeAndCalculations()
                 delay(1000L)
             }
         }
@@ -259,6 +259,15 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun toHome(item: WishlistItem, state: YeterUiState): Double =
         Rates.convert(item.price, item.currency, state.homeCurrency, state.rates)
+
+    private var lastCalKey: Triple<Int, Long, Long>? = null
+
+    // Uygulama arka plandayken saniyelik hesap yapılmaz; öne gelince hemen tazelenir.
+    @Volatile private var foreground = true
+    fun setForeground(on: Boolean) {
+        foreground = on
+        if (on) updateTimeAndCalculations()
+    }
 
     private fun updateTimeAndCalculations() {
         _uiState.update { state ->
@@ -348,7 +357,8 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
 
             // Takvim: son 35 gün
             val todayStart = Savings.startOfDay(now)
-            val calendar = (34 downTo 0).map { back ->
+            val calKey = Triple(state.events.size, state.events.lastOrNull()?.ts ?: 0L, todayStart)
+            val calendar = if (calKey == lastCalKey && state.calendar.isNotEmpty()) state.calendar else (34 downTo 0).map { back ->
                 val c = java.util.Calendar.getInstance()
                 c.timeInMillis = todayStart
                 c.add(java.util.Calendar.DAY_OF_YEAR, -back)
@@ -359,6 +369,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                 DayCell(ds, dayEvents.count { it.resisted }, dayEvents.count { !it.resisted }, back == 0)
             }
 
+            lastCalKey = calKey
             val savedUsd = Rates.convert(savedMoney, state.homeCurrency, "USD", state.rates)
             val badges = listOf(
                 Badge("🌱", "İlk Direniş", "İlk dürtüye direndin", state.resistedCount >= 1),
@@ -444,7 +455,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         prefs.edit()
             .putString("home_currency", homeCurrency)
             .putLong("start_timestamp", now)
-            .putFloat("daily_saving", daily.toFloat())
+            .putMoney("daily_saving", daily)
             .putString("last_prompt_day", Savings.dayKey(now))
             .putBoolean("onboarded", true)
             .apply()
@@ -478,7 +489,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
                 segs.add(midnight to amt)
             }
             Savings.saveSegments(prefs, segs)
-            prefs.edit().putFloat("daily_saving", amt.toFloat()).apply()
+            prefs.edit().putMoney("daily_saving", amt).apply()
         }
         prefs.edit().putString("last_prompt_day", Savings.dayKey(now)).apply()
         updateTimeAndCalculations()
@@ -577,23 +588,26 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             val f = { v: Double -> Rates.convert(v, old.homeCurrency, homeCurrency, old.rates) }
             val segs = Savings.loadSegments(prefs, now).map { it.first to f(it.second) }
             Savings.saveSegments(prefs, segs)
+            val evs = _uiState.value.events.map { it.copy(amount = f(it.amount)) }
+            Savings.saveEvents(prefs, evs)
             prefs.edit()
                 .putString("home_currency", homeCurrency)
-                .putFloat("resisted_total", f(old.resistedTotal).toFloat())
-                .putFloat("spent_total", f(old.spentTotal).toFloat())
+                .putMoney("resisted_total", f(old.resistedTotal))
+                .putMoney("spent_total", f(old.spentTotal))
                 .apply()
             _uiState.update {
                 it.copy(
                     homeCurrency = homeCurrency,
                     symbol = currencySymbol(homeCurrency),
                     resistedTotal = f(it.resistedTotal),
-                    spentTotal = f(it.spentTotal)
+                    spentTotal = f(it.spentTotal),
+                    events = evs
                 )
             }
         }
         val wageHome = if (homeCurrency != old.homeCurrency) Rates.convert(hourlyWage, old.homeCurrency, homeCurrency, old.rates) else hourlyWage
         val hourChanged = notifyHour != old.notifyHour
-        prefs.edit().putFloat("hourly_wage", wageHome.toFloat()).putInt("notify_hour", notifyHour).apply()
+        prefs.edit().putMoney("hourly_wage", wageHome).putInt("notify_hour", notifyHour).apply()
         if (hourChanged) {
             try {
                 DailyWorker.schedule(getApplication<Application>(), notifyHour, androidx.work.ExistingPeriodicWorkPolicy.UPDATE)
@@ -611,7 +625,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         if (_uiState.value.totalSaved + 0.005 < cost) return
         val spent = _uiState.value.spentTotal + cost
         val claimed = _uiState.value.claimedCount + 1
-        val editor = prefs.edit().putFloat("spent_total", spent.toFloat()).putInt("claimed_count", claimed)
+        val editor = prefs.edit().putMoney("spent_total", spent).putInt("claimed_count", claimed)
         listOf(50, 75, 90, 100).forEach { editor.remove("notif_${id}_$it") }
         editor.apply()
         _uiState.update { it.copy(spentTotal = spent, claimedCount = claimed) }
@@ -627,7 +641,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         val end = System.currentTimeMillis() + waitMinutes * 60_000L
         prefs.edit()
             .putString("urge_name", name.trim())
-            .putFloat("urge_amount", amount.toFloat())
+            .putMoney("urge_amount", amount)
             .putLong("urge_end", end)
             .apply()
         _uiState.update {
@@ -637,7 +651,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun clearUrgePrefs() {
-        prefs.edit().remove("urge_name").remove("urge_amount").remove("urge_end").apply()
+        prefs.edit().remove("urge_name").remove("urge_amount").remove("urge_amount_d").remove("urge_end").apply()
     }
 
     // Bekleme bitti ve vazgeçti: tutar havuza eklenir
@@ -647,7 +661,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
         val total = s.resistedTotal + s.urgeAmount
         val count = s.resistedCount + 1
         prefs.edit()
-            .putFloat("resisted_total", total.toFloat())
+            .putMoney("resisted_total", total)
             .putInt("resisted_count", count)
             .apply()
         val ev = UrgeEvent(System.currentTimeMillis(), s.urgeName, s.urgeAmount, true)

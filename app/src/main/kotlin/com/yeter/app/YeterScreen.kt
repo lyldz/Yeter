@@ -313,6 +313,7 @@ fun YeterScreen(
         var tempCur by remember { mutableStateOf(state.homeCurrency) }
         var tempWage by remember { mutableStateOf(if (state.hourlyWage > 0) state.hourlyWage.toString() else "") }
         var tempHour by remember { mutableStateOf(state.notifyHour) }
+        val ctx = LocalContext.current
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
@@ -359,6 +360,10 @@ fun YeterScreen(
             confirmButton = {
                 Button(onClick = {
                     val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
+                    if (tempCur != state.homeCurrency && state.rateUpdatedAt <= 0L) {
+                        android.widget.Toast.makeText(ctx, "Kur alınamadı, para birimi şimdilik değiştirilemez", android.widget.Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
                     onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
                 }) { Text("Kaydet") }
             },

@@ -1,11 +1,10 @@
-### Yeter! v1.2.1 · Kalkan
+### Yeter! v1.2.2 · Kalkan
 
-- **Kasa yenilendi ("Gece Kasası"):** Lacivert çelik gövde, metal kenar ve cam yansıması. Altın paralar artık gerçek bir madeni para gibi: kenar kalınlığı, iç halka, yıldız damgası, sol üstten ışık.
-- **Yığın:** Düz sarı blok yerine dama düzeninde dizilen paralar; birikim arttıkça yükselir, %70'ten sonra cam duvara altın yansıma düşer.
-- **İniş:** Para yığına girer, temas gölgesi ve toz parçacıkları çıkar, hafif titreşim verir. Hedefe ulaşınca yuva nane renginde parlar.
-- Sayma ve düşme mantığı değişmedi; tutar aynı kurallarla artıyor.
-- Büyük yazı boyutunda tutar kutusu ve alt yazı taşması düzeltildi.
-- Veriler korunur; v1.2.0 üzerine doğrudan kurulur.
+- **Kasa dolulukları artık gerçek tutarla orantılı:** Kasadaki yığın, sayaçta görünen tutarın hedefe oranıyla yükselir. 100 ₺ ile 1000 ₺ artık aynı görünmez; her altın düştüğünde yığın o kadar yükselir.
+- **Para saklama düzeltildi:** Tutarlar artık kayan hata vermeden saklanıyor (eski veriler otomatik okunur).
+- **Para birimi değişimi:** Geçmiş olay tutarları da yeni birime çevrilir; kur hiç alınamadıysa para birimi değiştirilemez.
+- **Pil ve akıcılık:** Uygulama arka plandayken saniyelik hesap durur; takvim ve birikim kayıtları gereksiz yeniden hesaplanmaz.
+- Veriler korunur; v1.2.1 üzerine doğrudan kurulur.
 
 #### İndirme:
 Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını indirip kurabilirsiniz.

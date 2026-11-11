@@ -59,7 +59,7 @@ object WidgetDataLoader {
             daysLeft = days,
             reachDate = date,
             resistedCount = prefs.getInt("resisted_count", 0),
-            resistedTotal = prefs.getFloat("resisted_total", 0f).toDouble(),
+            resistedTotal = prefs.getMoney("resisted_total", 0.0),
             goals = ui
         )
     }

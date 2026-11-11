@@ -556,13 +556,13 @@ fun CounterD(state: YeterUiState) {
         }
     }
 
-    // Doluluk (ilerlemeye bağlı); çizimde okunur
+    // Doluluk, gösterilen tutarla doğrusal: 100 ₺ ile 1000 ₺ aynı görünmez (taban yalnızca para varken çizgi görünsün diye %1)
     val fillTarget = when {
         done -> 1f
-        state.totalSaved <= 0.0 -> 0f
-        else -> progress.coerceAtLeast(0.05f)
+        displayed <= 0.0 || state.targetAmount <= 0.0 -> 0f
+        else -> (displayed / state.targetAmount).toFloat().coerceIn(0.01f, 1f)
     }
-    val fillState: State<Float> = animateFloatAsState(fillTarget, tween(900), label = "fillD")
+    val fillState: State<Float> = animateFloatAsState(fillTarget, tween(350), label = "fillD")
 
     // Hedef tamamlanınca parıltı nabzı (yalnızca çizimde okunur)
     val glowState: State<Float>? = if (done) {

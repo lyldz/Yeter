@@ -14,20 +14,24 @@ data class UrgeEvent(val ts: Long, val name: String, val amount: Double, val res
 object Savings {
 
     // Gün bazlı tutar kayıtları: (başlangıç zamanı, günlük tutar). Son kayıt hâlâ geçerlidir.
+    private var memoStr: String? = null
+    private var memoList: List<Pair<Long, Double>> = emptyList()
+
     fun loadSegments(prefs: SharedPreferences, now: Long = System.currentTimeMillis()): List<Pair<Long, Double>> {
         val s = prefs.getString("segments_json", null)
         if (s != null) {
+            if (s == memoStr) return memoList // JSON her saniye yeniden çözülmesin
             try {
                 val arr = JSONArray(s)
                 val list = (0 until arr.length()).map {
                     val o = arr.getJSONObject(it)
                     o.getLong("start") to o.getDouble("amount")
                 }
-                if (list.isNotEmpty()) return list
+                if (list.isNotEmpty()) { memoStr = s; memoList = list; return list }
             } catch (e: Exception) { /* aşağıda göç et */ }
         }
         val start = prefs.getLong("start_timestamp", now)
-        val amount = prefs.getFloat("daily_saving", 30f).toDouble()
+        val amount = prefs.getMoney("daily_saving", 30.0)
         val migrated = listOf(start to amount)
         saveSegments(prefs, migrated)
         return migrated
@@ -82,8 +86,8 @@ object Savings {
     // Havuz = taban birikim + direnilen − hedeflere harcanan (ana para biriminde)
     fun pool(prefs: SharedPreferences, now: Long): Double {
         val segs = loadSegments(prefs, now)
-        val resisted = prefs.getFloat("resisted_total", 0f).toDouble()
-        val spent = prefs.getFloat("spent_total", 0f).toDouble()
+        val resisted = prefs.getMoney("resisted_total", 0.0)
+        val spent = prefs.getMoney("spent_total", 0.0)
         return max(0.0, baseline(segs, now) + resisted - spent)
     }
 
@@ -133,8 +137,9 @@ object Savings {
         }
     }
 
-    fun addEvent(prefs: SharedPreferences, e: UrgeEvent) {
-        val list = (loadEvents(prefs) + e).takeLast(500)
+    fun addEvent(prefs: SharedPreferences, e: UrgeEvent) = saveEvents(prefs, (loadEvents(prefs) + e).takeLast(500))
+
+    fun saveEvents(prefs: SharedPreferences, list: List<UrgeEvent>) {
         val arr = JSONArray()
         for (x in list) {
             arr.put(JSONObject().put("ts", x.ts).put("name", x.name).put("amount", x.amount).put("resisted", x.resisted))
@@ -142,3 +147,10 @@ object Savings {
         prefs.edit().putString("events_json", arr.toString()).apply()
     }
 }
+
+// Para değerleri Float'ta kayan hata verir; "_d" anahtarında String(Double) saklanır, eski Float anahtarı yedek okunur.
+fun SharedPreferences.getMoney(key: String, def: Double): Double =
+    getString(key + "_d", null)?.toDoubleOrNull()
+        ?: try { Math.round(getFloat(key, def.toFloat()) * 100.0) / 100.0 } catch (e: ClassCastException) { def }
+
+fun SharedPreferences.Editor.putMoney(key: String, v: Double): SharedPreferences.Editor = putString(key + "_d", v.toString())
