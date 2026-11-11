@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -591,6 +592,22 @@ fun CounterD(state: YeterUiState) {
         else hapticArmed[0] = true
     }
 
+    // Kilometre taşı (%50/%75/%100): yukarı geçilince tek seferlik parlama. Açılışta mevcut seviye sessizce kabul edilir.
+    val ratio = if (state.targetAmount > 0.0) displayed / state.targetAmount else 0.0
+    val level = when { ratio >= 1.0 -> 3; ratio >= 0.75 -> 2; ratio >= 0.5 -> 1; else -> 0 }
+    val burst = remember { Animatable(1f) }
+    val lastLevel = remember { intArrayOf(level) }
+    var burstLevel by remember { mutableIntStateOf(0) }
+    LaunchedEffect(level) {
+        if (level > lastLevel[0]) {
+            burstLevel = level
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            burst.snapTo(0f)
+            burst.animateTo(1f, tween(1600))
+        }
+        lastLevel[0] = level
+    }
+
     val desc = "Kasada " + String.format(locale, "%,d", displayed.toLong().coerceAtLeast(0L)) +
         " " + symbol + ", hedefin yüzde " + percent + "'i" +
         (if (done) ". Hedefe ulaştın" else "")
@@ -634,6 +651,31 @@ fun CounterD(state: YeterUiState) {
                                 size = Size(d * sx * 0.9f, d * 0.22f)
                             )
                             drawCoinD(x, y, d, sx, sy, CoinLightD, CoinMidD, CoinDarkD)
+                        }
+
+                        val b = burst.value
+                        if (b < 1f && burstLevel > 0) {
+                            val col = if (burstLevel == 3) YeterMint else SparkD
+                            val a = 1f - b
+                            val cy = g.bodyTop + (g.bodyBottom - g.bodyTop) * 0.5f
+                            val w = g.x1 - g.x0
+                            drawCircle(
+                                brush = c.glowBrush, radius = w * (0.6f + 0.5f * b),
+                                center = Offset(g.cx, cy), alpha = (0.55f + 0.15f * burstLevel) * a
+                            )
+                            drawCircle(
+                                color = col.copy(alpha = 0.8f * a), radius = w * (0.3f + 0.7f * b),
+                                center = Offset(g.cx, cy), style = Stroke(width = (5f - 3f * b) * dp)
+                            )
+                            val n = 4 + 3 * burstLevel
+                            for (i in 0 until n) {
+                                val ang = (i.toFloat() / n) * 2f * PI.toFloat() + 0.4f
+                                val r = w * (0.35f + 0.6f * b)
+                                drawSparkleD(
+                                    Offset(g.cx + cos(ang) * r, cy + sin(ang) * r * 0.8f),
+                                    (6f + 5f * a) * dp, col.copy(alpha = a)
+                                )
+                            }
                         }
 
                         if (done) {
