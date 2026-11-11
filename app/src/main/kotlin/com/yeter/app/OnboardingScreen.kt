@@ -148,7 +148,7 @@ fun OnboardingScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = goalPriceText, onValueChange = { goalPriceText = it },
+                        value = goalPriceText, onValueChange = { v -> goalPriceText = if ((v.replace(',', '.').toDoubleOrNull() ?: 0.0) > Savings.MAX_GOAL) Savings.MAX_GOAL.toInt().toString() else v },
                         label = { Text("Fiyat ($goalCur)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, modifier = Modifier.fillMaxWidth()

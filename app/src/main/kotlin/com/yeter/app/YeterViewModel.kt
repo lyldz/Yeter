@@ -266,7 +266,10 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     @Volatile private var foreground = true
     fun setForeground(on: Boolean) {
         foreground = on
-        if (on) updateTimeAndCalculations()
+        if (on) {
+            updateTimeAndCalculations()
+            if (System.currentTimeMillis() - lastUpdateCheck > 300_000L) viewModelScope.launch(Dispatchers.IO) { checkForUpdate() }
+        }
     }
 
     private fun updateTimeAndCalculations() {
@@ -420,7 +423,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     fun addWishlistItem(name: String, price: Double, currency: String, recurring: Boolean) {
         val trimmed = name.trim()
         if (trimmed.isNotEmpty() && price > 0) {
-            goals.add(0, WishlistItem(name = trimmed, price = price, currency = currency, recurring = recurring))
+            goals.add(0, WishlistItem(name = trimmed, price = price.coerceAtMost(Savings.MAX_GOAL), currency = currency, recurring = recurring))
             Savings.saveGoals(prefs, goals)
             _uiState.update { it.copy(showAddWishlistDialog = false) }
             updateTimeAndCalculations()
@@ -460,7 +463,7 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
             .putBoolean("onboarded", true)
             .apply()
         if (goalName.isNotBlank() && goalPrice > 0) {
-            goals.add(0, WishlistItem(name = goalName.trim(), price = goalPrice, currency = goalCurrency, recurring = recurring))
+            goals.add(0, WishlistItem(name = goalName.trim(), price = goalPrice.coerceAtMost(Savings.MAX_GOAL), currency = goalCurrency, recurring = recurring))
             Savings.saveGoals(prefs, goals)
         }
         _uiState.update {
@@ -496,28 +499,36 @@ class YeterViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Güncelleme denetimi: açılışta ve saatte bir arka planda. "Sonra" denirse 24 saat ertelenir.
+    private var lastUpdateCheck = 0L
+
+    // Ağ hatasında 1 dk, başarıda 30 dk sonra yeniden dener; uygulama öne gelince de (5 dk'dan eskiyse) denetler.
     private fun startUpdateLoop() {
         viewModelScope.launch(Dispatchers.IO) {
             while (true) {
-                val now = System.currentTimeMillis()
-                if (now >= prefs.getLong("update_snooze_until", 0L) && !_uiState.value.showUpdateDialog) {
-                    val info = Updater.fetchLatest()
-                    if (info != null && Updater.isNewer(info.version, _uiState.value.currentAppVersion)) {
-                        _uiState.update {
-                            it.copy(
-                                hasUpdate = true,
-                                updateVersion = info.version,
-                                updateDownloadUrl = info.downloadUrl,
-                                updateNotes = info.notes,
-                                updateSizeBytes = info.sizeBytes,
-                                showUpdateDialog = true
-                            )
-                        }
-                    }
-                }
-                delay(3600_000L)
+                val ok = checkForUpdate()
+                delay(if (ok) 1800_000L else 60_000L)
             }
         }
+    }
+
+    // false: sunucuya ulaşılamadı
+    private fun checkForUpdate(): Boolean {
+        lastUpdateCheck = System.currentTimeMillis()
+        if (lastUpdateCheck < prefs.getLong("update_snooze_until", 0L) || _uiState.value.showUpdateDialog || _uiState.value.updateDownloading) return true
+        val info = Updater.fetchLatest() ?: return false
+        if (Updater.isNewer(info.version, _uiState.value.currentAppVersion)) {
+            _uiState.update {
+                it.copy(
+                    hasUpdate = true,
+                    updateVersion = info.version,
+                    updateDownloadUrl = info.downloadUrl,
+                    updateNotes = info.notes,
+                    updateSizeBytes = info.sizeBytes,
+                    showUpdateDialog = true
+                )
+            }
+        }
+        return true
     }
 
     // Sayaç stili: 0 klasik, 1 kumbara, 2 para yığını, 3 kart, 4 kasa

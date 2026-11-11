@@ -12,6 +12,7 @@ data class UrgeEvent(val ts: Long, val name: String, val amount: Double, val res
 
 // Birikim hesabı: hem ViewModel hem arka plan işi (bildirimler) kullanır.
 object Savings {
+    const val MAX_GOAL = 60_000.0 // hedef fiyat üst sınırı (girilen para biriminde)
 
     // Gün bazlı tutar kayıtları: (başlangıç zamanı, günlük tutar). Son kayıt hâlâ geçerlidir.
     private var memoStr: String? = null

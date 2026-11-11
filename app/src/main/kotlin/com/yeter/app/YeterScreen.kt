@@ -314,6 +314,22 @@ fun YeterScreen(
         var tempWage by remember { mutableStateOf(if (state.hourlyWage > 0) state.hourlyWage.toString() else "") }
         var tempHour by remember { mutableStateOf(state.notifyHour) }
         val ctx = LocalContext.current
+        var confirmDailyChange by remember { mutableStateOf(false) }
+        if (confirmDailyChange) {
+            AlertDialog(
+                onDismissRequest = { confirmDailyChange = false },
+                title = { Text("Günlük birikim değişsin mi?", fontWeight = FontWeight.Bold) },
+                text = { Text("Aktif birikim tutarını değiştirirsen kasa baştan hesaplanır: altın değeri yenilenir ve düşme sıfırdan başlar. Biriken paran silinmez, geçmiş günler eski tutarla kalır.") },
+                confirmButton = {
+                    Button(onClick = {
+                        confirmDailyChange = false
+                        val daily = tempDaily.replace(',', '.').toDoubleOrNull() ?: state.dailySaving
+                        onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
+                    }) { Text("Değiştir") }
+                },
+                dismissButton = { TextButton(onClick = { confirmDailyChange = false }) { Text("Vazgeç") } }
+            )
+        }
 
         AlertDialog(
             onDismissRequest = onCloseEdit,
@@ -364,7 +380,8 @@ fun YeterScreen(
                         android.widget.Toast.makeText(ctx, "Kur alınamadı, para birimi şimdilik değiştirilemez", android.widget.Toast.LENGTH_LONG).show()
                         return@Button
                     }
-                    onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
+                    if (kotlin.math.abs(daily - state.dailySaving) > 0.004) confirmDailyChange = true
+                    else onSaveSettings(daily, tempCur, tempWage.replace(',', '.').toDoubleOrNull() ?: 0.0, tempHour)
                 }) { Text("Kaydet") }
             },
             dismissButton = { TextButton(onClick = onCloseEdit) { Text("İptal") } }
@@ -455,7 +472,7 @@ fun YeterScreen(
                     )
                     OutlinedTextField(
                         value = prodPrice,
-                        onValueChange = { prodPrice = it },
+                        onValueChange = { v -> prodPrice = if ((v.replace(',', '.').toDoubleOrNull() ?: 0.0) > Savings.MAX_GOAL) Savings.MAX_GOAL.toInt().toString() else v },
                         label = { Text("Fiyat (${prodCur})") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,

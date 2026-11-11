@@ -603,7 +603,7 @@ fun CounterD(state: YeterUiState) {
             burstLevel = level
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             burst.snapTo(0f)
-            burst.animateTo(1f, tween(1600))
+            burst.animateTo(1f, tween(3200, easing = FastOutSlowInEasing))
         }
         lastLevel[0] = level
     }
