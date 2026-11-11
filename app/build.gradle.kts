@@ -45,6 +45,11 @@ android {
         getByName("debug") {
             if (yeterKeystore.exists()) signingConfig = signingConfigs.getByName("yeter")
         }
+        getByName("release") {
+            // shortcut: R8/küçültme kapalı, yansıma kırılma riski yok; açılırsa ayrıca test et.
+            isMinifyEnabled = false
+            signingConfig = if (yeterKeystore.exists()) signingConfigs.getByName("yeter") else signingConfigs.getByName("debug")
+        }
     }
 
     compileOptions {
