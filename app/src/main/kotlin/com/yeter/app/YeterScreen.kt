@@ -2,7 +2,6 @@ package com.yeter.app
 
 import androidx.compose.animation.core.*
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -17,7 +16,6 @@ import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +32,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Today
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Savings
@@ -526,189 +528,180 @@ fun YeterScreen(
     }
 }
 
-// ----------------- SEKME 1: SAYAÇ İÇERİĞİ (sade) -----------------
+// ----------------- SEKME 1: SAYAÇ İÇERİĞİ (tek ekran, kaydırmasız) -----------------
 @Composable
 fun SayacTabContent(
     state: YeterUiState,
     paddingValues: PaddingValues,
     onOpenUrge: () -> Unit
 ) {
-    var showMilestones by remember { mutableStateOf(false) }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
             .padding(horizontal = Spacing.screenEdge),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        // Canlı birikim (halka + sayı + tek satır süre)
-        item {
-            when (state.counterStyle) {
-                1 -> CounterA(state = state)
-                2 -> CounterB(state = state)
-                3 -> CounterC(state = state)
-                4 -> CounterD(state = state)
-                else -> HeroCounter(state = state)
+        // Canlı birikim: kalan yüksekliği alır
+        if (state.counterStyle == 4) {
+            CounterD(state = state, modifier = Modifier.weight(1f))
+        } else {
+            // Eski sabit yükseklikli stiller: kırpılmasın diye kaydırılabilir kutu
+            Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                when (state.counterStyle) {
+                    1 -> CounterA(state = state)
+                    2 -> CounterB(state = state)
+                    3 -> CounterC(state = state)
+                    else -> HeroCounter(state = state)
+                }
             }
         }
 
-        // Motivasyon: kart değil, sessiz tek satır
-        item {
-            Text(
-                text = state.motivationMessage,
-                style = MaterialTheme.typography.bodyMedium,
-                color = muted,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
-            )
-        }
-
-        // Hedef: tek kart, tek ilerleme çubuğu, tek özet satırı
-        item {
-            YeterCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = state.targetName,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.targetAmount),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                val goalProgress by animateFloatAsState(
-                    targetValue = state.progressFraction,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
-                    label = "goalProgress"
-                )
-                LinearProgressIndicator(
-                    progress = { goalProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+        // Hedef: kompakt kart (ad + tutar, ince çubuk, tek küçük satır)
+        YeterCard {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "${state.daysRemaining} gün kaldı · ${state.estimatedReachDate}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = muted
+                    text = state.targetName,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Text(
+                    text = "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.targetAmount),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-        }
-
-        // Üç sade sayı: bugün / direnilen / kurtarılan
-        item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                StatBlock(
-                    value = "+${state.symbol}" + String.format(Locale.getDefault(), "%,.2f", state.todayEarned),
-                    label = "Bugün",
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-                StatBlock(
-                    value = "${state.resistedCount}",
-                    label = "Direnilen",
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                StatBlock(
-                    value = "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.resistedTotal),
-                    label = "Kurtarılan",
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        // Dönüm noktaları: varsayılan kapalı
-        item {
-            Column {
-                TextButton(
-                    onClick = { showMilestones = !showMilestones },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text(
-                        if (showMilestones) "Dönüm noktalarını gizle" else "Dönüm noktaları",
-                        color = muted
-                    )
-                }
-                AnimatedVisibility(visible = showMilestones) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp)
-                    ) {
-                        items(state.milestones) { milestone ->
-                            val reached = state.elapsedDays >= milestone.dayThreshold
-                            Card(
-                                modifier = Modifier.width(160.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = if (reached) MaterialTheme.colorScheme.tertiaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = if (reached) "Kazandın" else "${milestone.dayThreshold}. gün",
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = if (reached) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(milestone.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(milestone.suggestedReward, style = MaterialTheme.typography.bodySmall, color = muted)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // DUR butonu
-        item {
-            val urgeSource = remember { MutableInteractionSource() }
-            val urgePressed by urgeSource.collectIsPressedAsState()
-            val urgeScale by animateFloatAsState(
-                targetValue = if (urgePressed) 0.96f else 1f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                label = "urgeScale"
+            Spacer(Modifier.height(Spacing.sm))
+            val goalProgress by animateFloatAsState(
+                targetValue = state.progressFraction,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy),
+                label = "goalProgress"
             )
-            Button(
-                onClick = onOpenUrge,
-                interactionSource = urgeSource,
+            LinearProgressIndicator(
+                progress = { goalProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
-                    .graphicsLayer {
-                        scaleX = urgeScale
-                        scaleY = urgeScale
-                    },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                shape = RoundedCornerShape(16.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+            )
+            Spacer(Modifier.height(Spacing.xs))
+            Text(
+                text = "${state.daysRemaining} gün kaldı · ${state.estimatedReachDate}",
+                style = MaterialTheme.typography.bodySmall,
+                color = muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Motivasyon: sessiz, kısa
+        Text(
+            text = state.motivationMessage,
+            style = MaterialTheme.typography.bodySmall,
+            color = muted,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md)
+        )
+
+        // Üç sayı tek kompakt satırda: bugün / direnilen / kurtarılan
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "DUR", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                StatBlock(
+                    icon = Icons.Rounded.Today,
+                    value = "+${state.symbol}" + String.format(Locale.getDefault(), "%,.2f", state.todayEarned),
+                    label = "Bugün",
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(Modifier.height(28.dp))
+                StatBlock(
+                    icon = Icons.Rounded.Shield,
+                    value = "${state.resistedCount}",
+                    label = "Direnilen",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                VerticalDivider(Modifier.height(28.dp))
+                StatBlock(
+                    icon = Icons.Rounded.Savings,
+                    value = "${state.symbol}" + String.format(Locale.getDefault(), "%,.0f", state.resistedTotal),
+                    label = "Kurtarılan",
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
-        item { Spacer(modifier = Modifier.height(14.dp)) }
+        // DUR butonu: altta sabit
+        val urgeSource = remember { MutableInteractionSource() }
+        val urgePressed by urgeSource.collectIsPressedAsState()
+        val urgeScale by animateFloatAsState(
+            targetValue = if (urgePressed) 0.96f else 1f,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+            label = "urgeScale"
+        )
+        Button(
+            onClick = onOpenUrge,
+            interactionSource = urgeSource,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .graphicsLayer {
+                    scaleX = urgeScale
+                    scaleY = urgeScale
+                },
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(text = "DUR", fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+        }
+        Spacer(Modifier.height(Spacing.sm))
     }
 }
 
 @Composable
-private fun StatBlock(value: String, label: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, color = color)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun StatBlock(icon: ImageVector, value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(Spacing.xs))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

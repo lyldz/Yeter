@@ -1,9 +1,9 @@
-### Yeter! v1.2.8 · Kalkan
+### Yeter! v1.2.9 · Kalkan
 
-- **Görsel rehber:** İlk açılışta kaydırmalı rehber: uygulamanın amacı, Sayaç / Vitrin / Geçmiş sekmeleri ve ayarlar mini maketlerle anlatılır. Son sayfada bildirim ve güncelleme kurma izinleri verilir. Dişli menüsünden "Rehberi göster" ile tekrar açılır.
-- **Dişli ve (i):** Ayarlar sağ üstteki dişli çarkta (ayarlar, sayaç görünümü, rehber). Yanındaki (i) simgesinde sürüm, güncellemeyi denetle, sürüm notları ve sıfırla var.
-- Kurulum formundan tanıtım ve izin adımları kaldırıldı (rehberde).
-- Veriler korunur; v1.2.7 üzerine doğrudan kurulur.
+- **Ana ekran tek sayfa:** Sayaç sekmesi artık kaydırma gerektirmez. Kasa, kalan alana göre boyutlanır; hedef kartı ve DUR düğmesi aynı ekranda görünür.
+- **Daha şık simgeler:** Bugün / Direnilen / Kurtarılan tek satırda küçük simgelerle gösterilir; hedef kartı sıkılaştı.
+- Ana ekrandaki "Dönüm noktaları" bölümü kaldırıldı.
+- Veriler korunur; v1.2.8 üzerine doğrudan kurulur.
 
 #### İndirme:
 Aşağıdaki **Assets** bölümünden `Yeter.apk` dosyasını indirip kurabilirsiniz.

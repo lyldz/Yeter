@@ -146,7 +146,7 @@ private fun buildSafeCacheD(w: Float, h: Float, dp: Float): SafeCacheD {
     val safeW = min(w, 250f * dp)
     val x0 = (w - safeW) / 2f
     val cx = w / 2f
-    val lidTop = 40f * dp
+    val lidTop = min(40f * dp, h * 0.2f) // kısa kutuda üst boşluk orantılı daralır
     val lidH = 16f * dp
     val bodyTop = lidTop + lidH - 2f * dp
     val bodyBottom = h - 6f * dp
@@ -462,7 +462,7 @@ private fun DrawScope.drawSafeD(
 }
 
 @Composable
-fun CounterD(state: YeterUiState) {
+fun CounterD(state: YeterUiState, modifier: Modifier = Modifier) {
     val locale = remember { Locale.getDefault() }
     val done = state.progressFraction >= 1f
     val progress = state.progressFraction.coerceIn(0f, 1f)
@@ -573,9 +573,9 @@ fun CounterD(state: YeterUiState) {
 
     val shownText = fmtMoneyD(displayed, locale)
     val amountSize = when {
-        shownText.length <= 8 -> 46.sp
-        shownText.length <= 11 -> 38.sp
-        else -> 32.sp
+        shownText.length <= 8 -> 40.sp
+        shownText.length <= 11 -> 34.sp
+        else -> 28.sp
     }
     // Gradyan sınırsız: metin boyutuna kendiliğinden uyar, bu yüzden tek sefer üretilir.
     val amountBrush = remember { Brush.verticalGradient(listOf(Color(0xFFFFF4C2), YeterAmber)) }
@@ -609,16 +609,17 @@ fun CounterD(state: YeterUiState) {
         (if (done) ". Hedefe ulaştın" else "")
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .clearAndSetSemantics { contentDescription = desc },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(190.dp)
+                .weight(1f)
+                .heightIn(min = 110.dp)
                 .drawWithCache {
                     // Yalnızca boyuta bağlı hazırlık; State okuması yok
                     val c = buildSafeCacheD(size.width, size.height, density)
@@ -688,13 +689,13 @@ fun CounterD(state: YeterUiState) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp),
+                .heightIn(min = 52.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier
-                    .padding(top = 12.dp)
+                    .padding(top = 6.dp)
                     .graphicsLayer {
                         val s = 1f + 0.08f * tick.value
                         scaleX = s
@@ -732,7 +733,7 @@ fun CounterD(state: YeterUiState) {
                     .align(Alignment.TopCenter)
                     .graphicsLayer {
                         val p = label.value
-                        translationY = -p * 30.dp.toPx() + 18.dp.toPx()
+                        translationY = -p * 24.dp.toPx() + 12.dp.toPx()
                         alpha = when {
                             p >= 1f -> 0f
                             p < 0.15f -> p / 0.15f
